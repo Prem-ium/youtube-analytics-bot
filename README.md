@@ -1,2 +1,3 @@
-# YouTube-Apprise
-Python Script to receive daily YouTube Analytics reports!
+# Apprise_YouTube
+
+Python script to receive YouTube analytical reports!
