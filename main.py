@@ -1,30 +1,32 @@
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import googleapiclient.errors
+import os
+import datetime
+import dotenv
+from dotenv import load_dotenv
+
+import apprise
+
 from oauth2client import client # Added
 from oauth2client import tools # Added
 from oauth2client.file import Storage # Added
-import google.oauth2.credentials
-import google_auth_oauthlib.flow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
-from google_auth_oauthlib.flow import InstalledAppFlow
-import apprise
-import os
+
+load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 
-APPRISE_ALERTS = os.environ.get("APPRISE_ALERTS", None)
-
+# Set up Apprise, if enabled
+APPRISE_ALERTS = os.environ.get("APPRISE_ALERTS")
+if APPRISE_ALERTS:
+    APPRISE_ALERTS = APPRISE_ALERTS.split(",")
 API_SERVICE_NAME = 'youtubeAnalytics'
 API_VERSION = 'v2'
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
-# Methods
 def apprise_init():
     if APPRISE_ALERTS:
         alerts = apprise.Apprise()
+        # Add all services from .env
         for service in APPRISE_ALERTS:
             alerts.add(service)
         return alerts
@@ -40,6 +42,7 @@ def get_service(): # Modified
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
+
 def main():
     # Disable OAuthlib's HTTPS verification when running locally.
     # *DO NOT* leave this option enabled in production.
@@ -55,8 +58,15 @@ def main():
         #dimensions='day',
         #sort='day'
     )
+   # print(response)
+    # parse response
+    response = response['rows'][0][0]
     print(response)
+
+    alerts.notify(title=f'YouTube Report', body=f'Estimated Revenue: {response}')
     
 
 if __name__ == "__main__":
+    if APPRISE_ALERTS:
+        alerts = apprise_init()
     main()
