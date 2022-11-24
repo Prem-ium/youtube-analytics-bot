@@ -29,3 +29,5 @@ The bot can be run using Python.
 
 ## Environment Variables:
 `APPRISE_ALERTS` = Notifications and Alerts. See .env example for more details
+
+`KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
