@@ -1,13 +1,13 @@
 import os
 import datetime
-import dotenv
+import traceback
 from dotenv import load_dotenv
 from time import sleep
 import apprise
 
-from oauth2client import client # Added
-from oauth2client import tools # Added
-from oauth2client.file import Storage # Added
+from oauth2client import client 
+from oauth2client import tools 
+from oauth2client.file import Storage 
 from googleapiclient.discovery import build
 
 load_dotenv()
@@ -24,7 +24,7 @@ if APPRISE_ALERTS:
 if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
     from keep_alive import keep_alive
     keep_alive()
-    
+
 API_SERVICE_NAME = 'youtubeAnalytics'
 API_VERSION = 'v2'
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
@@ -56,17 +56,18 @@ def get_stats(start = datetime.datetime.now().strftime("%Y-%m-01"), end = dateti
         ids='channel==MINE',
         startDate = start,
         endDate = end,
-        metrics='views,estimatedMinutesWatched,estimatedRevenue',
+        metrics='views,estimatedMinutesWatched,estimatedRevenue,playbackBasedCpm',
     )
     # Retrieve the data from the response
     views = response['rows'][0][0]
     minutes = response['rows'][0][1]
     revenue = response['rows'][0][2]
+    cpm = response['rows'][0][3]
 
     # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
     start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-    response = f'Views:\t{views:,}\nMinutes Watched:\t{minutes:,}\nEstimated Revenue:\t${revenue:,}'
+    response = f'Views:\t{views:,}\nMinutes Watched:\t{minutes:,}\nEstimated Revenue:\t${revenue:,}\nPlayback CPM:\t${cpm:,}'
     print(response)
     alerts.notify(title=f'YouTube Analytics Report ({start}\t-\t{end})', body=f'\n{response}\n\n...')
 
@@ -80,13 +81,10 @@ def main():
             # sleep for 6 hours
             sleep(21600)
         except Exception as e:
-            print(f'Received error: {e}')
-            alerts.notify(title=f'YouTube Analytics Report Error', body=f'\n{e}\n\n...')
+            print(traceback.format_exc())
+            alerts.notify(title=f'YouTube Analytics Report Error', body=f'\n{traceback.format_exc()}\n\n...')
 
 if __name__ == "__main__":
     if APPRISE_ALERTS:
         alerts = apprise_init()
-    # Disable OAuthlib's HTTPS verification when running locally.
-    # *DO NOT* leave this option enabled in production.
-    # os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
     main()
