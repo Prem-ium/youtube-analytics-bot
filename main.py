@@ -120,9 +120,6 @@ async def top_ten_earnings(start = datetime.datetime.now().strftime("%Y-%m-01"),
     print(top_ten)
     return top_ten
 
-async def get_everything(startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
-    return await get_stats(startDate, endDate) + '\n\n' + await top_ten_earnings(startDate, endDate)
-
 async def update_dates(startDate, endDate):
     if len(startDate) != 5 or len(endDate) != 5:
         startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
@@ -134,6 +131,69 @@ async def update_dates(startDate, endDate):
         if len(endDate) == 5:
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
     return startDate, endDate
+
+async def earnings_by_country(startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+    youtubeAnalytics = get_service()
+    # Get top preforming countries by revenue
+    response = execute_api_request(
+        youtubeAnalytics.reports().query,
+        ids='channel==MINE',
+        startDate = startDate,
+        endDate = endDate,
+        dimensions='country',
+        metrics='grossRevenue',
+        sort='-grossRevenue',
+        maxResults=10,
+    )
+    startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace('-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
+
+    returnString = f'Top 10 Countries by Revenue: ({startDate}\t-\t{endDate})\n'
+    for row in response['rows']:
+        returnString += f'{row[0]}: ${row[1]}\n'
+        print(row[0], row[1])
+
+    return returnString
+async def get_ad_preformance(start = datetime.datetime.now().strftime("%Y-%m-01"), end = datetime.datetime.now().strftime("%Y-%m-%d")):
+    youtubeAnalytics = get_service()
+    response = execute_api_request(
+        youtubeAnalytics.reports().query,
+        ids='channel==MINE',
+        startDate = start,
+        endDate = end,
+        dimensions='adType',
+        metrics='grossRevenue,adImpressions,cpm',
+        sort='adType'
+    )
+    # Turn response into a table
+    table = []
+    for row in response['rows']:
+        table.append(row)
+    # Get the total revenue
+    revenue = 0
+    for row in table:
+        revenue += float(row[1])
+    # Get the total impressions
+    impressions = 0
+    for row in table:
+        impressions += float(row[2])
+    # Get the total CPM
+    cpm = 0
+    for row in table:
+        cpm += float(row[3])
+    
+    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+    start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+    # Format the table
+    table = f'Ad Type Preformance for ({start} - {end})\n{"_"*20}{"_"*20}{"_"*20}{"_"*20}\n{"Ad Type":<20}\t\t{"Revenue":<20}{"Impressions":<20}{"CPM":<20}\n{"_"*20}{"_"*20}{"_"*20}{"_"*20}\n'
+    for row in response['rows']:
+        table += f'{row[0]:<20}\t\t{row[1]:<20}{row[2]:<20}{row[3]:<20}{"_"*20}{"_"*20}{"_"*20}{"_"*20}\n'
+    table += f'{"Total":<20}\t\t{round(revenue, 2):<20}{impressions:<20}{cpm:<20}\n{"_"*20}{"_"*20}{"_"*20}{"_"*20}\n'
+
+    print(table + 'Table sent.')
+
+    return table
+async def get_everything(startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+    return await get_stats(startDate, endDate) + '\n\n' + await top_ten_earnings(startDate, endDate) + '\n\n' + await earnings_by_country(startDate, endDate) + '\n\n' + await get_ad_preformance(startDate, endDate)
 
 # Dead code, but I'm keeping it here for now. 
 def main():
@@ -199,21 +259,17 @@ if __name__ == "__main__":
             startDate, endDate = await update_dates(startDate, endDate)
             await ctx.send(await get_everything(startDate, endDate))
             print(f'\n{startDate} - {endDate} everything sent')
-       
-       
-       
-        # At 10 AM or 8:30 PM everyday, send the monthly stats to the channel
-        #@tasks.loop(hours=24)
-        #async def called_once_a_day():
-        #    message_channel = bot.get_channel(DISCORD_CHANNEL)
-        #    await message_channel.send(await get_stats())
-#
-        #@called_once_a_day.before_loop
-        #async def before():
-        #    await bot.wait_until_ready()
-        #    print("Finished waiting")
-
-        
+        @bot.command(aliases=['bycountry'])
+        async def country(ctx, startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+            startDate, endDate = await update_dates(startDate, endDate)
+            await ctx.send(await earnings_by_country(startDate, endDate))
+            print(f'\n{startDate} - {endDate} earnings by country sent')
+        @bot.command(aliases=['adpreformance'])
+        async def ad(ctx, startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+            startDate, endDate = await update_dates(startDate, endDate)
+            await ctx.send(await get_ad_preformance(startDate, endDate))
+            print(f'\n{startDate} - {endDate} ad preformance sent')
+    
         # Help command
         @bot.command()
         async def help(ctx):
