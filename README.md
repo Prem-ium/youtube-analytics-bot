@@ -1,13 +1,14 @@
 # YouTube Apprise
-A simple Python script to receive notifications of YouTube analytics.
+An awesome Discord bot to retireve YouTube analytics data.
 
-## Future Features
+## Features
+- Running on Docker
+- Alerts on total views, watch-time, estimated revenue earned & more
+- Discord Support (Newly added)
 
-- User-Handled Intervals between messages
-- More data involving highest preforming videos
-
-## Possible Future Features / Project Adjustments
-- Discord Bot Support / CLI (Command Line) 
+## Coming Soon Features
+- Comparing net difference/increases between two seperate time periods
+- Automated alerts (sending everyday at a certain specified time)
 
 ## Installation
 (Coming soon... However, if you have the YouTube Analytics API enabled with your Client Secret JSON, you may proceed with installation.)
@@ -49,6 +50,10 @@ View on [Docker Hub](https://hub.docker.com/repository/docker/sazn/youtube-appri
 
 
 ## Environment Variables:
+`DISCORD_TOKEN` = Retrieve from https://discord.com/developers/applications
+
+`DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
+
 `APPRISE_ALERTS` = Notifications and Alerts. See .env example for more details
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
