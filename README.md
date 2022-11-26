@@ -32,11 +32,7 @@ View on [Docker Hub](https://hub.docker.com/repository/docker/sazn/youtube-appri
 1. Run script locally with Python to generate credentials json file.
 2. Download and install Docker on your system
 3. Configure your `.env` file (See below and example for options)
-4. To start the bot using our prebuilt images:
- ```sh
-   docker run -it --env-file ./.env --restart unless-stopped --name youtube-apprise sazn/youtube-apprise:latest
-   ```
-   To build the image yourself, cd into the repository and run:
+4. To build the image yourself, cd into the repository and run:
    ```sh
    docker build -t youtube-apprise .
    ```
