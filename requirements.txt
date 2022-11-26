@@ -2,5 +2,7 @@ apprise
 discord.py
 Flask
 google_api_python_client
+google_auth_oauthlib
 oauth2client
+protobuf
 python-dotenv

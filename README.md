@@ -54,6 +54,8 @@ View on [Docker Hub](https://hub.docker.com/repository/docker/sazn/youtube-appri
 
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
+`YOUTUBE_API_KEY` = YouTube Data API Key
+
 `APPRISE_ALERTS` = Notifications and Alerts. See .env example for more details
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
