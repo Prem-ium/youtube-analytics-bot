@@ -1,5 +1,5 @@
 .env
-CLIENT_SECRET.json
+CLIENT_SECRET*.json
 credential_sample.json
 testing.py
 testing2.py

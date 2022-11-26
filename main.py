@@ -1,17 +1,19 @@
 import os
 import datetime
 import traceback
-import threading
 from dotenv import load_dotenv
 from time import sleep
 import apprise
 import discord
 from discord.ext import commands, tasks
-from oauth2client import client 
-from oauth2client import tools 
-from oauth2client.file import Storage 
+from oauth2client import client
+from oauth2client import tools
+from oauth2client.file import Storage
 from googleapiclient.discovery import build
-
+import googleapiclient.errors
+from google_auth_oauthlib.flow import InstalledAppFlow
+import google
+import google_auth_oauthlib
 load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
@@ -42,14 +44,13 @@ API_SERVICE_NAME = 'youtubeAnalytics'
 API_VERSION = 'v2'
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
-def apprise_init():
+async def apprise_init():
     if APPRISE_ALERTS:
         alerts = apprise.Apprise()
         # Add all services from .env
         for service in APPRISE_ALERTS:
             alerts.add(service)
         return alerts
-
 
 def get_service():
     credential_path = os.path.join('./', 'credential_sample.json')
@@ -86,6 +87,54 @@ async def get_stats(start = datetime.datetime.now().strftime("%Y-%m-01"), end = 
     #alerts.notify(title=f'YouTube Analytics Report ({start}\t-\t{end})', body=f'\n{response}\n\n...')
     return response
 
+async def top_ten_earnings(start = datetime.datetime.now().strftime("%Y-%m-01"), end = datetime.datetime.now().strftime("%Y-%m-%d")):
+    youtubeAnalytics = get_service()
+    response = execute_api_request(
+        youtubeAnalytics.reports().query,
+        ids='channel==MINE',
+        startDate = start,
+        endDate = end,
+        dimensions='video',
+        metrics='estimatedRevenue',
+        sort='-estimatedRevenue',
+        maxResults=10,
+    )
+    video_ids = []
+    earnings = []
+    for data in response['rows']:
+        video_ids.append(data[0])
+        earnings.append(data[1])
+
+    youtube = googleapiclient.discovery.build("youtube", "v3", developerKey = os.environ.get('YOUTUBE_API_KEY'))
+
+    request = youtube.videos().list(
+        part="snippet",
+        id=','.join(video_ids)
+    )
+    response = request.execute()
+    start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+
+    top_ten = f'Top 10 Earning Videos {start} - {end}:\n\n'
+    for i in range(len(response['items'])):
+        top_ten += f'{response["items"][i]["snippet"]["title"]} - ${earnings[i]}\n'
+    print(top_ten)
+    return top_ten
+
+async def get_everything(startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+    return await get_stats(startDate, endDate) + '\n\n' + await top_ten_earnings(startDate, endDate)
+
+async def update_dates(startDate, endDate):
+    if len(startDate) != 5 or len(endDate) != 5:
+        startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
+        endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
+    else:
+        currentYear = datetime.datetime.now().strftime("%Y")
+        if len(startDate) == 5:
+            startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+        if len(endDate) == 5:
+            endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+    return startDate, endDate
+
 # Dead code, but I'm keeping it here for now. 
 def main():
     while True:
@@ -120,7 +169,7 @@ if __name__ == "__main__":
             print('Someone just got ponged!')
             await ctx.send('pong')
 
-        @bot.command(aliases=['lifetime,alltime'])
+        @bot.command(aliases=['lifetime, alltime'])
         async def lifetime(ctx):
             print()
             # Get Lifetime stats from the get_stats function, and send it to the channel
@@ -135,20 +184,24 @@ if __name__ == "__main__":
             print('\nMonthly stats sent\n')
         
         @bot.command(aliases=['stats'])
-        async def analyze(ctx, startDate, endDate):
-            if len(startDate) != 5 or len(endDate) != 5:
-                startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
-                endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
-            else:
-                currentYear = datetime.datetime.now().strftime("%Y")
-                if len(startDate) == 5:
-                    startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
-                if len(endDate) == 5:
-                    endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
-
+        async def analyze(ctx, startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+            startDate, endDate = await update_dates(startDate, endDate)
             await ctx.send(await get_stats(startDate, endDate))
             print(f'\n{startDate} - {endDate} stats sent')
 
+        @bot.command(aliases=['top10'])
+        async def top(ctx, startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+            startDate, endDate = await update_dates(startDate, endDate)
+            await ctx.send(await top_ten_earnings(startDate, endDate))
+            print(f'\n{startDate} - {endDate} top 10 sent')
+        @bot.command(aliases=['everything'])
+        async def all(ctx, startDate = datetime.datetime.now().strftime("%m/01/%y"), endDate = datetime.datetime.now().strftime("%m/%d/%y")):
+            startDate, endDate = await update_dates(startDate, endDate)
+            await ctx.send(await get_everything(startDate, endDate))
+            print(f'\n{startDate} - {endDate} everything sent')
+       
+       
+       
         # At 10 AM or 8:30 PM everyday, send the monthly stats to the channel
         #@tasks.loop(hours=24)
         #async def called_once_a_day():
@@ -165,8 +218,8 @@ if __name__ == "__main__":
         @bot.command()
         async def help(ctx):
             await ctx.send('Available commands:')
-            await ctx.send('!ping\n!lifetime\n!stats [start date] [end date]\n!monthly')
-            await ctx.send('!restart')
+            await ctx.send('!ping\n!lifetime\n!stats [start date] [end date]\n!monthly\n!top10 [start date] [end date]\n!restart')
+            await ctx.send('!top10 [start date] [end date]')
             await ctx.send('!help')
 
         # Restart command
