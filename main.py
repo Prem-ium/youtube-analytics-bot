@@ -195,8 +195,8 @@ if __name__ == "__main__":
         print('Someone just got ponged!')
         await ctx.send('pong')
 
-    @bot.command(aliases=['lifetime'])
-    async def lifetime(ctx):
+    @bot.command(aliases=['lifetime', 'alltime'])
+    async def lifetime_method(ctx):
         print()
         # Get Lifetime stats from the get_stats function, and send it to the channel
         await ctx.send(await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d")))
