@@ -1,4 +1,3 @@
-apprise
 discord.py
 Flask
 google_api_python_client

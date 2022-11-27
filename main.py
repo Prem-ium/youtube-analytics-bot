@@ -3,7 +3,6 @@ import datetime
 import traceback
 from dotenv import load_dotenv
 from time import sleep
-import apprise
 import discord
 from discord.ext import commands, tasks
 from oauth2client import client
@@ -18,11 +17,6 @@ load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
-
-# Set up Apprise, if enabled
-APPRISE_ALERTS = os.environ.get("APPRISE_ALERTS")
-if APPRISE_ALERTS:
-    APPRISE_ALERTS = APPRISE_ALERTS.split(",")
 
 
 DISCORD_TOKEN = os.environ.get("DISCORD_TOKEN", None)
@@ -43,15 +37,6 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
 API_SERVICE_NAME = 'youtubeAnalytics'
 API_VERSION = 'v2'
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
-
-
-async def apprise_init():
-    if APPRISE_ALERTS:
-        alerts = apprise.Apprise()
-        # Add all services from .env
-        for service in APPRISE_ALERTS:
-            alerts.add(service)
-        return alerts
 
 
 def get_service():
@@ -89,7 +74,7 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
 
     response = f'YouTube Analytics Report ({start}\t-\t{end})\n\nViews:\t{views:,}\nMinutes Watched:\t{minutes:,}\nEstimated Revenue:\t${revenue:,}\nPlayback CPM:\t${cpm:,}'
     print(response)
-    #alerts.notify(title=f'YouTube Analytics Report ({start}\t-\t{end})', body=f'\n{response}\n\n...')
+
     return response
 
 
@@ -126,6 +111,7 @@ async def top_ten_earnings(start=datetime.datetime.now().strftime("%Y-%m-01"), e
     for i in range(len(response['items'])):
         top_ten += f'{response["items"][i]["snippet"]["title"]} - ${earnings[i]}\n'
     print(top_ten)
+
     return top_ten
 
 
@@ -211,26 +197,8 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
 
     return table.replace('_', '-')
 
-# Dead code, but I'm keeping it here for now.
-
-
-def main():
-    while True:
-        try:
-            # Get Monthly Stats
-            get_stats()
-            print("Sleeping for 6 hours...")
-            # sleep for 6 hours
-            sleep(21600)
-        except Exception as e:
-            print(traceback.format_exc())
-            alerts.notify(title=f'YouTube Analytics Report Error',
-                          body=f'\n{traceback.format_exc()}\n\n...')
-
 
 if __name__ == "__main__":
-    if APPRISE_ALERTS:
-        alerts = apprise_init()
     if DISCORD_TOKEN or DISCORD_CHANNEL:
         intents = discord.Intents.all()
         bot = commands.Bot(command_prefix='!', intents=intents)
