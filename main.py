@@ -301,8 +301,7 @@ if __name__ == "__main__":
         @bot.command()
         async def help(ctx):
             await ctx.send('Available commands:')
-            await ctx.send('!ping\n!lifetime\n!stats [start date] [end date]\n!monthly\n!top10 [start date] [end date]\n!restart')
-            await ctx.send('!top10 [start date] [end date]')
+            await ctx.send('!ping\n!lifetime\n!stats [start date] [end date]\n!monthly\n!top10 [start date] [end date]\n!everything [start date] [end date]\n!adpreformance [start date] [end date]\nbycountry [start date] [end date]\n!restart')
             await ctx.send('!help')
 
         # Restart command
