@@ -15,6 +15,14 @@ from oauth2client.file import Storage
 from discord.ext import commands, tasks
 from oauth2client import client, tools
 
+
+
+# TODO: Massively clean Discord code. It's a mess.
+
+
+
+
+
 load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
@@ -53,10 +61,9 @@ def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
 
 async def update_dates(startDate, endDate):
-    splitStartDate = startDate.split('/')
-    splitEndDate = endDate.split('/')
+    splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
-    if (splitStartDate[0] == 1 and splitEndDate[0] == 1) or startDate == endDate:
+    if (splitStartDate[1] == '01' and splitEndDate[1] == '01') and startDate == endDate:
         year = startDate.split('/')[2] if (len(startDate.split('/')) > 2) else datetime.datetime.now().strftime("%Y")
         year = f'20{year}' if len(year) == 2 else year
         previousMonth = int(splitStartDate[0]) - \
@@ -64,25 +71,19 @@ async def update_dates(startDate, endDate):
         lastDay = monthrange(int(year), previousMonth)[1]
 
         # Assign the new dates to the variables & return them
-        startDate = datetime.datetime.strptime(
-            f'{previousMonth}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
-        endDate = datetime.datetime.strptime(
-            f'{previousMonth}/{lastDay}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+        startDate = datetime.datetime.strptime(f'{previousMonth}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+        endDate = datetime.datetime.strptime(f'{previousMonth}/{lastDay}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
 
         return startDate, endDate
     elif len(startDate) != 5 or len(endDate) != 5:
-        startDate = datetime.datetime.strptime(
-            startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
-        endDate = datetime.datetime.strptime(
-            endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
+        startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
+        endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
     else:
         currentYear = datetime.datetime.now().strftime("%Y")
         if len(startDate) == 5:
-            startDate = datetime.datetime.strptime(
-                startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+            startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
         if len(endDate) == 5:
-            endDate = datetime.datetime.strptime(
-                endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+            endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
     print(f'Updating dates to {startDate} - {endDate}')
     return startDate, endDate
 
@@ -163,8 +164,8 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
             startDate=startDate,
             endDate=endDate,
             dimensions='country',
-            metrics='grossRevenue',
-            sort='-grossRevenue',
+            metrics='estimatedRevenue',
+            sort='-estimatedRevenue',
             maxResults=results,
         )
         startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
@@ -206,6 +207,31 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
+
+# More detailed geo data/report
+async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+    youtubeAnalytics = get_service()
+    # Get top preforming countries by revenue
+    response = execute_api_request(
+        youtubeAnalytics.reports().query,
+        ids='channel==MINE',
+        startDate=startDate,
+        endDate=endDate,
+        dimensions='country',
+        metrics='views,estimatedRevenue,estimatedAdRevenue,estimatedRedPartnerRevenue,grossRevenue,adImpressions,cpm,playbackBasedCpm,monetizedPlaybacks',
+        sort='-estimatedRevenue',
+        maxResults=results,
+    )
+    report = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
+    # Parse the response using rows and columnHeaders
+    for row in response['rows']:
+        for i in range(len(row)):
+            try:    report += f'{response["columnHeaders"][i]["name"]}:{row[i]:,}\n'
+            except: report += f'{response["columnHeaders"][i]["name"]}:{row[i]}\n'
+            if (len(report) > 1500): return report
+        report += '\n'
+    print(f'Data received:\t{response}\n\nReport Generated:\n{report}')
+    return report
 
 if __name__ == "__main__":
     intents = discord.Intents.all()
@@ -260,16 +286,23 @@ if __name__ == "__main__":
 
     # Retrieve top earning videos within specified date range, defaults to current month
     @bot.command(aliases=['topEarnings'])
-    async def top(ctx, results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+    async def top(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         await ctx.send(await top_revenue(results, startDate, endDate))
         print(f'\n{startDate} - {endDate} top {results} sent')
 
     # Top revenue by country
     @bot.command(aliases=['geo_revenue', 'geoRevenue'])
-    async def country(ctx, results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+    async def detailed_georeport(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         await ctx.send(await top_countries_by_revenue(results, startDate, endDate))
+        print(f'\n{startDate} - {endDate} earnings by country sent')
+
+    # Geo Report (views, revenue, cpm, etc)
+    @bot.command(aliases=['geo_report', 'geoReport'])
+    async def country(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=3):
+        startDate, endDate = await update_dates(startDate, endDate)
+        await ctx.send(await get_detailed_georeport(results, startDate, endDate))
         print(f'\n{startDate} - {endDate} earnings by country sent')
 
     # Ad Type Preformance Data
@@ -302,8 +335,9 @@ if __name__ == "__main__":
         await ctx.send('Available commands:')
         await ctx.send('!stats [startDate] [endDate]- Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1 \t!stats 01/01/2021 01/31/2021')
         await ctx.send('!getMonth [month/year]- Return stats for a specific month.\nExample: !getMonth 01/21')
-        await ctx.send('!topEarnings [# of countries to return] [startDate] [endDate]- Return top specified highest revenue earning videos.')
-        await ctx.send('!geo_revenue [# of countries to return] [startDate] [endDate] - Top Specific (default 10) countries by revenue')
+        await ctx.send('!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]- Return top specified highest revenue earning videos.')
+        await ctx.send('!geo_revenue [startDate] [endDate] [# of countries to return]- Top Specific (default 10) countries by revenue')
+        await ctx.send('!geoReport [startDate] [endDate] [# of countries to return]- More detailed report of views, revenue, cpm, etc by country')
         await ctx.send('!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range')
         await ctx.send('!lifetime - Get lifetime stats')
         await ctx.send('!everything [startDate] [endDate]- Return everything. Call every method and output all available data')
