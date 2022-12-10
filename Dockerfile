@@ -3,5 +3,5 @@ ADD requirements.txt /
 RUN pip install -r requirements.txt
 ADD main.py /
 ADD CLIENT_SECRET.json /
-ADD credential_sample.json /
+ADD credentials.json /
 CMD [ "python", "./main.py" ]
