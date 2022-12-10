@@ -1,5 +1,5 @@
 # YouTube Analytics Discord Bot
-An awesome Discord bot to retireve YouTube analytics data.
+An awesome Discord bot to retireve YouTube Analytics data with ease.
 
 ## Set-Up
 #### Google Cloud Console (API Setup)
@@ -10,6 +10,16 @@ An awesome Discord bot to retireve YouTube analytics data.
 5. Click Create Credentials -> OAuth Credentials -> Desktop Application -> Go through setup.
 6. Download JSON, name it `CLIENT_SECRET.json` and place the file inside the same folder as the progran.
 7. Create Credentials -> API Key -> Copy and Assign Key to .env variable `YOUTUBE_API_KEY`
+
+#### Discord Bot
+1. Go to https://discord.com/developers/ and create a new application. Name it YouTube Apprise or whatever you wish, accept terms.
+2. Open the application -> OAuth2 -> URL Generator 
+3. Within Scopes, click 'Bot' and within Bot Permissions  
+4. Enable Text Permissions such as Send Messages & Read Message History. 
+5. Enable General Permissions such as View Server Insights.
+6. Copy the generated link below Permissions and enter it in browser. Add the bot to your server of choice (preferably your very own PRIVATE Discord server, as sensitive information such as revenue and CPM is accessibly through bot commands)
+7. (Optional) Add a pretty pfp image for your bot in Rich Presence.
+8. Return to OAuth2, reset Client Secret, and retrieve the token and assign it to `DISCORD_TOKEN` env variable.
 
 ## Installation
 The bot can be run using Python & Docker.
@@ -49,7 +59,7 @@ Build with Docker only after running locally and generating a `credentials.json`
 `DISCORD_TOKEN` = Retrieve from https://discord.com/developers/applications
 
 
-`YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credenital's Page after enabling the YouTube Data API)
+`YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credentials's Page after enabling the YouTube Data API)
 ##### Optional .env:
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
