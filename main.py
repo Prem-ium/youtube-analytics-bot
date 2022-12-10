@@ -15,14 +15,6 @@ from oauth2client.file import Storage
 from discord.ext import commands, tasks
 from oauth2client import client, tools
 
-
-
-# TODO: Massively clean Discord code. It's a mess.
-
-
-
-
-
 load_dotenv()
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
@@ -49,7 +41,7 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
-    credential_path = os.path.join('./', 'credential_sample.json')
+    credential_path = os.path.join('./', 'credentials.json')
     store = Storage(credential_path)
     credentials = store.get()
     if not credentials or credentials.invalid:
@@ -66,15 +58,12 @@ async def update_dates(startDate, endDate):
     if (splitStartDate[1] == '01' and splitEndDate[1] == '01') and startDate == endDate:
         year = startDate.split('/')[2] if (len(startDate.split('/')) > 2) else datetime.datetime.now().strftime("%Y")
         year = f'20{year}' if len(year) == 2 else year
-        previousMonth = int(splitStartDate[0]) - \
-            1 if int(splitStartDate[0]) > 1 else 12
+        previousMonth = int(splitStartDate[0]) - 1 if int(splitStartDate[0]) > 1 else 12
         lastDay = monthrange(int(year), previousMonth)[1]
 
         # Assign the new dates to the variables & return them
         startDate = datetime.datetime.strptime(f'{previousMonth}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(f'{previousMonth}/{lastDay}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
-
-        return startDate, endDate
     elif len(startDate) != 5 or len(endDate) != 5:
         startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')

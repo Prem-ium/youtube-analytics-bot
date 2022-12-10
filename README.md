@@ -1,11 +1,19 @@
 # YouTube Analytics Discord Bot
 An awesome Discord bot to retireve YouTube analytics data.
 
-## Installation
-(Coming soon... However, if you have the YouTube Analytics API enabled with your Client Secret JSON, you may proceed with installation.)
+## Set-Up
+#### Google Cloud Console (API Setup)
+1. To get started, head over to the Google Cloud Console website & create a new project.
+2. Click on 'API & Services' & 'Enable APIs and Services'
+3. Search & Enable both 'YouTube Data' and 'YouTube Analytics' API.
+4. Return to API & Services page and click on 'credentials'
+5. Click Create Credentials -> OAuth Credentials -> Desktop Application -> Go through setup.
+6. Download JSON, name it `CLIENT_SECRET.json` and place the file inside the same folder as the progran.
+7. Create Credentials -> API Key -> Copy and Assign Key to .env variable `YOUTUBE_API_KEY`
 
+## Installation
 The bot can be run using Python & Docker.
-### Python Script
+#### Python Script
 1. Clone this repository, cd into it, and install dependancies:
 ```sh
    git clone https://github.com/Prem-ium/youtube-analytics-bot
@@ -18,8 +26,8 @@ The bot can be run using Python & Docker.
     ```sh
     python main.py
    ```
-### Docker Container
-Build with Docker
+#### Docker Container
+Build with Docker only after running locally and generating a `credentials.json` file
 1. Run script locally with Python to generate credentials json file.
 2. Download and install Docker on your system
 3. Configure your `.env` file (See below and example for options)
@@ -40,8 +48,21 @@ Build with Docker
 ##### Required .env:
 `DISCORD_TOKEN` = Retrieve from https://discord.com/developers/applications
 
+
+`YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credenital's Page after enabling the YouTube Data API)
+##### Optional .env:
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
-`YOUTUBE_API_KEY` = YouTube Data API Key (Required for certain commands)
-##### Optional .env:
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
+
+## Discord Commands
+Optional Text is denoted using [brackets]
+- `!stats [startDate] [endDate]`- Return stats within time range. Defaults to current month
+- `!getMonth [month/year]`- Return stats for a specific month
+- `!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]` - Return top specified highest revenue earning videos.
+- `!geo_revenue [startDate] [endDate] [# of countries to return]` - Top Specific (default 10) countries by revenue
+- `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country
+- `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range
+- `!lifetime` - Get lifetime stats
+- `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data
+- `!help` - Send all commands.
