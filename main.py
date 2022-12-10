@@ -55,51 +55,72 @@ def execute_api_request(client_library_function, **kwargs):
 async def update_dates(startDate, endDate):
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
+    # If the start and end dates are in the first month of the year & they are the same date
     if (splitStartDate[1] == '01' and splitEndDate[1] == '01') and startDate == endDate:
+        # Get the year from the start date, or use the current year
         year = startDate.split('/')[2] if (len(startDate.split('/')) > 2) else datetime.datetime.now().strftime("%Y")
+        # Use the full 4-digit year
         year = f'20{year}' if len(year) == 2 else year
+        # Get the previous month
         previousMonth = int(splitStartDate[0]) - 1 if int(splitStartDate[0]) > 1 else 12
+        # Get the last day of the previous month
         lastDay = monthrange(int(year), previousMonth)[1]
-
-        # Assign the new dates to the variables & return them
+        # Set the start and end dates to the previous month
         startDate = datetime.datetime.strptime(f'{previousMonth}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(f'{previousMonth}/{lastDay}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+    # If the start or end date is missing the year
     elif len(startDate) != 5 or len(endDate) != 5:
+        # Set the start and end dates to the full date including the year
         startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
     else:
+        # Get the current year
         currentYear = datetime.datetime.now().strftime("%Y")
+        # If the start date is missing the year
         if len(startDate) == 5:
+            # Set the start date to the full date including the year
             startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+        # If the end date is missing the year
         if len(endDate) == 5:
+            # Set the end date to the full date including the year
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
+    # Print a message indicating the updated dates
     print(f'Updating dates to {startDate} - {endDate}')
     return startDate, endDate
-
 
 async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         youtubeAnalytics = get_service()
+
+        # Query the YouTube Analytics API
         response = execute_api_request(
             youtubeAnalytics.reports().query,
             ids='channel==MINE',
             startDate=start,
             endDate=end,
-            metrics='views,estimatedMinutesWatched,estimatedRevenue,playbackBasedCpm',
+            metrics='views,estimatedMinutesWatched,subscribersGained,subscribersLost,estimatedRevenue,cpm,monetizedPlaybacks,playbackBasedCpm,adImpressions',
         )
+
         # Retrieve the data from the response
         views = response['rows'][0][0]
         minutes = response['rows'][0][1]
-        revenue = response['rows'][0][2]
-        cpm = response['rows'][0][3]
+        subscribersGained = response['rows'][0][2] - response['rows'][0][3]
+        revenue = response['rows'][0][4]
+        cpm = response['rows'][0][5]
+        monetizedPlaybacks = response['rows'][0][6]
+        playbackCpm = response['rows'][0][7]
+        adImpressions = response['rows'][0][8]
 
         # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-        start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
-            '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+        start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-        response = f'YouTube Analytics Report ({start}\t-\t{end})\n\nViews:\t{round(views,2):,}\nMinutes Watched:\t{round(minutes,2):,}\nEstimated Revenue:\t${round(revenue,2):,}\nPlayback CPM:\t${round(cpm,2):,}'
-        print(response + '\nSending to Discord...')
-        return response
+        # Build the response string
+        response_str = f'YouTube Analytics Report ({start}\t-\t{end})\n\n'
+        response_str += f'Views:\t{round(views,2):,}\nMinutes Watched:\t{round(minutes,2):,}\nSubscribers Gained:\t{round(subscribersGained,2):,}\n\n'
+        response_str += f'Estimated Revenue:\t${round(revenue,2):,}\nCPM:\t${round(cpm,2):,}\nMonetized Playbacks (±2.0%):\t{round(monetizedPlaybacks,2):,}\nPlayback CPM:\t${round(playbackCpm,2):,}\nAd Impressions:\t{round(adImpressions,2):,}'
+
+        print(response_str + '\nSending to Discord...')
+        return response_str
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -108,6 +129,8 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
 async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         youtubeAnalytics = get_service()
+
+        # Query the YouTube Analytics API
         response = execute_api_request(
             youtubeAnalytics.reports().query,
             ids='channel==MINE',
@@ -118,6 +141,8 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
             sort='-estimatedRevenue',
             maxResults=results,
         )
+
+        # Retrieve video IDs and earnings from the response
         video_ids = []
         earnings = []
         for data in response['rows']:
@@ -126,16 +151,23 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
 
         youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
+        # Query the YouTube Data API
         request = youtube.videos().list(
             part="snippet",
             id=','.join(video_ids)
         )
         response = request.execute()
+
+        # Format the start and end dates
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-        top_results = f'Top {results} Earning Videos ({start}\t-\t{end})\n:\n\n'
+        # Build the response string
+        top_results = f'Top {results} Earning Videos ({start}\t-\t{end}):\n\n'
+        total = 0
         for i in range(len(response['items'])):
-            top_results += f'{response["items"][i]["snippet"]["title"]} - ${round(earnings[i], 2):,}\n'
+            top_results += f'{i + 1}) {response["items"][i]["snippet"]["title"]} - ${round(earnings[i], 2):,}\n'
+            total += earnings[i]
+        top_results += f'\n\nTop {results} Total Earnings: ${round(total, 2):,}'
         print(top_results)
 
         return top_results
@@ -143,10 +175,12 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
+
 async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
         youtubeAnalytics = get_service()
-        # Get top preforming countries by revenue
+
+        # Query the YouTube Analytics API
         response = execute_api_request(
             youtubeAnalytics.reports().query,
             ids='channel==MINE',
@@ -157,23 +191,28 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
             sort='-estimatedRevenue',
             maxResults=results,
         )
+
+        # Format the start and end dates
         startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
             '-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
 
-        returnString = f'Top {results} Countries by Revenue: ({startDate}\t-\t{endDate})\n'
+        # Build the response string
+        return_str = f'Top {results} Countries by Revenue: ({startDate}\t-\t{endDate})\n'
         for row in response['rows']:
-            returnString += f'{row[0]}:\t\t${round(row[1],2):,}\n'
+            return_str += f'{row[0]}:\t\t${round(row[1],2):,}\n'
             print(row[0], row[1])
 
-        return returnString
+        return return_str
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 
+
 async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         youtubeAnalytics = get_service()
+
         response = execute_api_request(
             youtubeAnalytics.reports().query,
             ids='channel==MINE',
@@ -183,94 +222,137 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
             metrics='grossRevenue,adImpressions,cpm',
             sort='adType'
         )
-        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-        start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
-            '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-        preformance = f'Ad Preformance ({start}\t-\t{end})\n\n'
+        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+        start_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/')
+        end_str = (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+
+        preformance = f'Ad Preformance ({start_str}\t-\t{end_str})\n'
+        preformance += '-' * (int(len(preformance))*2) + '\n'
+        preformance += f'| {"": <20} {"Ad Type": <25}| {"": <20}{"Gross Revenue": <25}| {"Impressions": <25}| {"CPM": <25}|\n'
+        preformance += '-' * (int(len(preformance))) + '\n'
+
         # Parse the response into nice formatted string
         for row in response['rows']:
-            preformance += f'{row[0]}:\n\t\t\t\t\t\t\tGross Revenue:\t${round(row[1],2):,}\tImpressions:\t{round(row[2],2):,}\tCPM:\t${round(row[3],2):,}\n'
-            print(row[0], row[1], row[2], row[3])
+            preformance += f'| {row[0]: <40}\t| {"": <20}${round(row[1],2): <25,}\t| {round(row[2],2): <25,}\t| ${round(row[3],2): <25,}\t|\n'
+
+        preformance += '-' * (int(len(preformance) / 11)) + '\n'
         return preformance
+
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 # More detailed geo data/report
 async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
-    youtubeAnalytics = get_service()
-    # Get top preforming countries by revenue
-    response = execute_api_request(
-        youtubeAnalytics.reports().query,
-        ids='channel==MINE',
-        startDate=startDate,
-        endDate=endDate,
-        dimensions='country',
-        metrics='views,estimatedRevenue,estimatedAdRevenue,estimatedRedPartnerRevenue,grossRevenue,adImpressions,cpm,playbackBasedCpm,monetizedPlaybacks',
-        sort='-estimatedRevenue',
-        maxResults=results,
-    )
-    report = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
-    # Parse the response using rows and columnHeaders
-    for row in response['rows']:
-        for i in range(len(row)):
-            try:    report += f'{response["columnHeaders"][i]["name"]}:{row[i]:,}\n'
-            except: report += f'{response["columnHeaders"][i]["name"]}:{row[i]}\n'
-            if (len(report) > 1500): return report
-        report += '\n'
-    print(f'Data received:\t{response}\n\nReport Generated:\n{report}')
-    return report
+    try:
+        youtubeAnalytics = get_service()
+        # Get top preforming countries by revenue
+        response = execute_api_request(
+            youtubeAnalytics.reports().query,
+            ids='channel==MINE',
+            startDate=startDate,
+            endDate=endDate,
+            dimensions='country',
+            metrics='views,estimatedRevenue,estimatedAdRevenue,estimatedRedPartnerRevenue,grossRevenue,adImpressions,cpm,playbackBasedCpm,monetizedPlaybacks',
+            sort='-estimatedRevenue',
+            maxResults=results,
+        )
+
+        # Parse the response using rows and columnHeaders
+        report = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
+        for row in response['rows']:
+            for i in range(len(row)):
+                try:
+                    column_name = response["columnHeaders"][i]["name"]
+                    column_value = row[i],
+                    report += f'{column_name}:{column_value}\n'
+                except:
+                    column_name = response["columnHeaders"][i]["name"]
+                    column_value = row[i]
+                    report += f'{column_name}:{column_value}\n'
+                if len(report) > 1500:
+                    return report
+
+            report += '\n'
+
+        print(f'Data received:\t{response}\n\nReport Generated:\n{report}')
+        return report
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 if __name__ == "__main__":
-    intents = discord.Intents.all()
-    bot = commands.Bot(command_prefix='!', intents=intents)
+    # Set the intents for the bot
+    discord_intents = discord.Intents.all()
+    # Create the bot with the specified command prefix and intents
+    bot = commands.Bot(command_prefix='!', intents=discord_intents)
+    # Remove the default 'help' command
     bot.remove_command('help')
 
     # Bot event when bot is ready
     if DISCORD_CHANNEL:
+        # Define the event handler
         @bot.event
         async def on_ready():
+            # Get the specified channel
             channel = bot.get_channel(DISCORD_CHANNEL)
+            # Send a message to the channel indicating that the bot is ready
             await channel.send('Analytics Bot is ready!')
 
-    # Bot ping-pong
+    # Bot ping-pong command
     @bot.command(name='ping')
     async def ping(ctx):
+        # Send a 'pong' message to the user
         await ctx.send('pong')
+        # Print a message to the console indicating that the user got ponged
         print(
             f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     # Retrieve Analytic stats within specified date range, defaults to current month
     @bot.command(aliases=['stats', 'thisMonth'])
     async def analyze(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+        # Update the start and end dates to be in the correct format
         startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await get_stats(startDate, endDate))
+        # Get the stats for the specified date range
+        stats = await get_stats(startDate, endDate)
+        # Send the stats to the user
+        await ctx.send(stats)
+        # Print a message to the console indicating that the stats were sent
         print(f'\n{startDate} - {endDate} stats sent')
 
-    # Retrieve top earning videos within specified date range, defaults to current month
+
     @bot.command(aliases=['lastMonth'])
     async def lastmonth(ctx):
+        # Get the last month's start and end dates
         startDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
         endDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
         startDate = startDate.replace(day=1)
         endDate = endDate.replace(
             day=calendar.monthrange(endDate.year, endDate.month)[1])
+        # Send the stats for the last month to the user
         await ctx.send(await get_stats(startDate.strftime("%Y-%m-%d"), endDate.strftime("%Y-%m-%d")))
+        # Print a message to the console indicating that the stats were sent
         print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
 
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
     @bot.command(aliases=['getMonth'])
     async def month(ctx, period=datetime.datetime.now().strftime("%m/%Y")):
+        # Split the period into month and year
         period = period.split('/')
         month, year = period[0], period[1]
+        # Add a '20' prefix to the year if it has only two digits
         year = f'20{year}' if len(year) == 2 else year
+        # Get the last day of the month
         lastDate = monthrange(int(year), int(month))[1]
+        # Get the start and end dates in the correct format
         startDate = datetime.datetime.strptime(
             f'{month}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(
             f'{month}/{lastDate}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+        # Send the stats for the specified month to the user
         await ctx.send(await get_stats(startDate, endDate))
+        # Print a message to the console indicating that the stats were sent
         print(f'\n{period} stats sent\n')
 
     # Retrieve top earning videos within specified date range, defaults to current month
@@ -304,34 +386,59 @@ if __name__ == "__main__":
     # Lifetime stats
     @bot.command(aliases=['lifetime', 'alltime'])
     async def lifetime_method(ctx):
-        await ctx.send(await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d")))
+        stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
+        await ctx.send(stats)
         print('\nLifetime stats sent\n')
 
     # Send everything.
     @bot.command(aliases=['everything'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await get_stats(startDate, endDate) + '\n\n.')
-        await ctx.send(await top_revenue(10, startDate, endDate) + '\n\n.')
-        await ctx.send(await top_countries_by_revenue(10, startDate, endDate) + '\n\n.')
-        await ctx.send(await get_ad_preformance(startDate, endDate) + '\n\n.')
-
+        
+        # Get statistics
+        stats = await get_stats(startDate, endDate)
+        
+        # Get top revenue
+        top_rev = await top_revenue(10, startDate, endDate)
+        
+        # Get top countries by revenue
+        top_countries = await top_countries_by_revenue(10, startDate, endDate)
+        
+        # Get ad performance
+        ad_performance = await get_ad_preformance(startDate, endDate)
+        
+        # Get detailed georeport
+        georeport = await get_detailed_georeport(3, startDate, endDate)
+        
+        # Send everything
+        await ctx.send(stats + '\n\n.')
+        await ctx.send(top_rev + '\n\n.')
+        await ctx.send(top_countries + '\n\n.')
+        await ctx.send(ad_performance + '\n\n.')
+        await ctx.send(georeport + '\n\n.')
         print(f'\n{startDate} - {endDate} everything sent')
-    # Help command
 
+
+    # Help command
     @bot.command()
     async def help(ctx):
-        await ctx.send('Available commands:')
-        await ctx.send('!stats [startDate] [endDate]- Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1 \t!stats 01/01/2021 01/31/2021')
-        await ctx.send('!getMonth [month/year]- Return stats for a specific month.\nExample: !getMonth 01/21')
-        await ctx.send('!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]- Return top specified highest revenue earning videos.')
-        await ctx.send('!geo_revenue [startDate] [endDate] [# of countries to return]- Top Specific (default 10) countries by revenue')
-        await ctx.send('!geoReport [startDate] [endDate] [# of countries to return]- More detailed report of views, revenue, cpm, etc by country')
-        await ctx.send('!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range')
-        await ctx.send('!lifetime - Get lifetime stats')
-        await ctx.send('!everything [startDate] [endDate]- Return everything. Call every method and output all available data')
-        await ctx.send('!restart - Restart the bot')
-        await ctx.send('!help\n!ping')
+        available_commands = [
+            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1 \t!stats 01/01/2021 01/31/2021\n",
+            "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\n",
+            "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\n",
+            "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\n",
+            "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\n",
+            "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\n",
+            "!lifetime - Get lifetime stats\n",
+            "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\n",
+            "!restart - Restart the bot",
+            "!help\n!ping"
+        ]
+        
+        # Use the join method to concatenate all the elements in the list
+        available_commands = "\n".join(available_commands)
+
+        await ctx.send(f"Available commands:\n\n{available_commands}")
 
     # Restart command
     @bot.command(name='restart')
