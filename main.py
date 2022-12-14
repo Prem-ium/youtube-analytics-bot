@@ -282,6 +282,25 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
+async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+    try:
+        youtubeAnalytics = get_service()
+        # Get top preforming countries by revenue
+        response = execute_api_request(
+            youtubeAnalytics.reports().query,
+            dimensions="ageGroup,gender",
+            ids='channel==MINE',
+            startDate=startDate,
+            endDate=endDate,
+            metrics="viewerPercentage",
+            sort="gender,ageGroup",
+        )
+        print(response)
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+
+
 if __name__ == "__main__":
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
