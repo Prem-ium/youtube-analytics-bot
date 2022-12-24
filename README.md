@@ -79,5 +79,12 @@ Optional Text is denoted using [brackets]
 - `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country
 - `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range
 - `!lifetime` - Get lifetime stats
+- `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers
+- `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos.
 - `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data
 - `!help` - Send all commands.
+
+
+## Final Remarks
+Thank you for your interest in my repository. 
+Please, leave a :star2: so others can discover this hidden gem as well!

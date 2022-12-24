@@ -10,6 +10,7 @@ import googleapiclient.errors
 import discord
 
 from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.exceptions import RefreshError, UserAccessTokenError, GoogleAuthError
 from googleapiclient.discovery import build
 from oauth2client.file import Storage
 from discord.ext import commands, tasks
@@ -293,13 +294,49 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
             startDate=startDate,
             endDate=endDate,
             metrics="viewerPercentage",
-            sort="gender,ageGroup",
+            sort="-viewerPercentage",
         )
-        print(response)
+
+               # Format the start and end dates
+        startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
+            '-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
+        demographics = f'Gender Viewership Demographics ({startDate}\t-\t{endDate})\n\n'
+
+        # Parse the response into nice formatted string
+        for row in response['rows']:
+            if round(row[2],2) < 1: break
+            # split string after index of 'e'
+            row[0] = row[0].split('e')
+
+            demographics += f'{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}\n'
+        print(f'Demographics Report Generated & Sent:\n{demographics}')
+        return demographics
+
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
+async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+    youtubeAnalytics = get_service()
+    request = youtubeAnalytics.reports().query(
+        dimensions="sharingService",
+        startDate=start,
+        endDate=end,
+        ids="channel==MINE",
+        maxResults=results,
+        metrics="shares",
+        sort="-shares"
+    ).execute()
+
+    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+
+    shares = f'Top Sharing Services ({start_str}\t-\t{end_str})\n\n'
+    # Parse the response into nice formatted string
+    for row in request['rows']:
+        shares += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+    print(f'Shares Report Generated & Sent:\n{shares}')
+    return shares
 
 if __name__ == "__main__":
     # Set the intents for the bot
@@ -333,13 +370,20 @@ if __name__ == "__main__":
     async def analyze(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         # Update the start and end dates to be in the correct format
         startDate, endDate = await update_dates(startDate, endDate)
-        # Get the stats for the specified date range
-        stats = await get_stats(startDate, endDate)
-        # Send the stats to the user
-        await ctx.send(stats)
-        # Print a message to the console indicating that the stats were sent
-        print(f'\n{startDate} - {endDate} stats sent')
-
+        try:
+            # Get the stats for the specified date range
+            stats = await get_stats(startDate, endDate)        
+            # Send the stats to the user
+            await ctx.send(stats)
+            # Print a message to the console indicating that the stats were sent
+            print(f'\n{startDate} - {endDate} stats sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     @bot.command(aliases=['lastMonth'])
     async def lastmonth(ctx):
@@ -347,12 +391,19 @@ if __name__ == "__main__":
         startDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
         endDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
         startDate = startDate.replace(day=1)
-        endDate = endDate.replace(
-            day=calendar.monthrange(endDate.year, endDate.month)[1])
-        # Send the stats for the last month to the user
-        await ctx.send(await get_stats(startDate.strftime("%Y-%m-%d"), endDate.strftime("%Y-%m-%d")))
-        # Print a message to the console indicating that the stats were sent
-        print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
+        endDate = endDate.replace(day=calendar.monthrange(endDate.year, endDate.month)[1])
+        try:
+            stats = await get_stats(startDate.strftime("%Y-%m-%d"), endDate.strftime("%Y-%m-%d"))
+            # Send the stats to the user
+            await ctx.send(stats)
+            print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
     @bot.command(aliases=['getMonth'])
@@ -369,74 +420,172 @@ if __name__ == "__main__":
             f'{month}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(
             f'{month}/{lastDate}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
-        # Send the stats for the specified month to the user
-        await ctx.send(await get_stats(startDate, endDate))
-        # Print a message to the console indicating that the stats were sent
-        print(f'\n{period} stats sent\n')
+        try:
+            stats = await get_stats(startDate, endDate)
+            # Send the stats to the user
+            await ctx.send(stats)
+            print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Retrieve top earning videos within specified date range, defaults to current month
     @bot.command(aliases=['topEarnings'])
     async def top(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await top_revenue(results, startDate, endDate))
-        print(f'\n{startDate} - {endDate} top {results} sent')
+        try:
+            rev = await top_revenue(results, startDate, endDate)
+            # Send the stats to the user
+            await ctx.send(rev)
+            print(f'\n{startDate} - {endDate} top {results} sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Top revenue by country
     @bot.command(aliases=['geo_revenue', 'geoRevenue'])
     async def detailed_georeport(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
-        startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await top_countries_by_revenue(results, startDate, endDate))
-        print(f'\n{startDate} - {endDate} earnings by country sent')
+        startDate, endDate = await update_dates(startDate, endDate)        
+        try:
+            stats = await top_countries_by_revenue(results, startDate, endDate)
+            # Send the stats to the user
+            await ctx.send(stats)
+            print(f'\nLast month ({startDate} - {endDate}) geo-revenue report sent\n')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Geo Report (views, revenue, cpm, etc)
     @bot.command(aliases=['geo_report', 'geoReport'])
     async def country(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=3):
         startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await get_detailed_georeport(results, startDate, endDate))
-        print(f'\n{startDate} - {endDate} earnings by country sent')
+        try:
+            stats = await get_detailed_georeport(results, startDate, endDate)
+            # Send the stats to the user
+            await ctx.send(stats)
+            print(f'\n{startDate} - {endDate} earnings by country sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Ad Type Preformance Data
     @bot.command(aliases=['adtype', 'adPreformance'])
     async def ad(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
-        await ctx.send(await get_ad_preformance(startDate, endDate))
-        print(f'\n{startDate} - {endDate} ad preformance sent')
+        try:
+            stats = await get_ad_preformance(startDate, endDate)
+            # Send the stats to the user
+            await ctx.send(stats)
+            print(f'\n{startDate} - {endDate} ad preformance sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Lifetime stats
     @bot.command(aliases=['lifetime', 'alltime'])
     async def lifetime_method(ctx):
-        stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
-        await ctx.send(stats)
-        print('\nLifetime stats sent\n')
+        try:
+            stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
+            await ctx.send(stats)
+            print('\nLifetime stats sent\n')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
+    # Demographics Report
+    @bot.command(aliases=['demographics', 'gender', 'age'])
+    async def demo_graph(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+        startDate, endDate = await update_dates(startDate, endDate)
+        try:
+            await ctx.send(await get_demographics(startDate, endDate))
+            print(f'\n{startDate} - {endDate} demographics sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
+    # Shares Report
+    @bot.command(aliases=['shares', 'shares_report', 'sharesReport'])
+    async def share_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
+        startDate, endDate = await update_dates(startDate, endDate)
+        try:
+            await ctx.send(await get_shares(results, startDate, endDate))
+            print(f'\n{startDate} - {endDate} shares result sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
     # Send everything.
     @bot.command(aliases=['everything'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
-        
-        # Get statistics
-        stats = await get_stats(startDate, endDate)
-        
-        # Get top revenue
-        top_rev = await top_revenue(10, startDate, endDate)
-        
-        # Get top countries by revenue
-        top_countries = await top_countries_by_revenue(10, startDate, endDate)
-        
-        # Get ad performance
-        ad_performance = await get_ad_preformance(startDate, endDate)
-        
-        # Get detailed georeport
-        georeport = await get_detailed_georeport(3, startDate, endDate)
-        
-        # Send everything
-        await ctx.send(stats + '\n\n.')
-        await ctx.send(top_rev + '\n\n.')
-        await ctx.send(top_countries + '\n\n.')
-        await ctx.send(ad_performance + '\n\n.')
-        await ctx.send(georeport + '\n\n.')
-        print(f'\n{startDate} - {endDate} everything sent')
+        try:
+            # Get statistics
+            stats = await get_stats(startDate, endDate)
+            
+            # Get top revenue
+            top_rev = await top_revenue(10, startDate, endDate)
+            
+            # Get top countries by revenue
+            top_countries = await top_countries_by_revenue(10, startDate, endDate)
+            
+            # Get ad performance
+            ad_performance = await get_ad_preformance(startDate, endDate)
+            
+            # Get detailed georeport
+            georeport = await get_detailed_georeport(3, startDate, endDate)
+            
+            # Get demographics report
+            demographics = await get_demographics(startDate, endDate)
 
+            # Get shares report
+            shares = await get_shares(5, startDate, endDate)
+
+            # Send everything
+            await ctx.send(stats + '\n\n.')
+            await ctx.send(top_rev + '\n\n.')
+            await ctx.send(top_countries + '\n\n.')
+            await ctx.send(ad_performance + '\n\n.')
+            await ctx.send(georeport + '\n\n.')
+            await ctx.send(demographics + '\n\n.')
+            await ctx.send(shares + '\n\n.')
+            print(f'\n{startDate} - {endDate} everything sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
 
     # Help command
     @bot.command()
@@ -448,7 +597,9 @@ if __name__ == "__main__":
             "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\n",
             "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\n",
             "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\n",
-            "!lifetime - Get lifetime stats\n",
+            "!lifetime - Get lifetime stats - Get lifetime stats\n",
+            "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\n",
+            "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\n",
             "!restart - Restart the bot",
             "!help\n!ping"
