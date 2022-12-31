@@ -1,22 +1,66 @@
-# YouTube Analytics Discord Bot 🤖
+# 📊 YouTube Analytics Discord Bot 🤖
 
-An awesome Discord bot to retrieve YouTube Analytics data with ease.
+An awesome Discord bot to retrieve & output your YouTube Analytics data.
 
-## Discord Commands
-Optional Text is denoted using [brackets]
-- `!stats [startDate] [endDate]`- Return views, subscribers gained, estimated revenue, cpm, ad playbacks, etc. stats within time range. Defaults to current month 📅
-- `!getMonth [month/year]`- Return stats for a specific month 📆
-- `!lifetime` - Get lifetime stats 🧮
-- `!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]` - Return top specified highest revenue earning videos. 💰
-- `!geo_revenue [startDate] [endDate] [# of countries to return]` - Top Specific (default 10) countries by revenue 🌎💰
-- `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country 🌎
-- `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range 💰
-- `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers 👨‍👩‍👧‍👧
-- `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos. 📤
-- `!search [startDate] [endDate] [# of results to return (Default: 10)]` - Return top specified highest search traffic terms (sorted by views). 🔍
-- `!os [startDate] [endDate] [# of results to return (Default: 10)]` - Return top operating systems watching your videos (ranked by views). 📟
-- `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data ♾️
-- `!help` - Send all commands. 🦮
+
+## Features & Discord Commands
+Start every command with `!`. Optional Command Input is denoted using [brackets].
+- YouTube Analytics Report Card. Display Views, Watch-Time, Estimated Revenue, CPM, Ad-Impressions, & more. Defaults to current month if date range not specified📅
+```sh
+   !stats [startDate] [endDate]
+```
+- Return stats for a specific month 📆
+```sh
+   !getMonth [month/year]
+```
+- Get lifetime stats 🧮
+```sh
+   !lifetime
+```
+- Get a list of the highest revenue earning videos on your channel. 💰
+```sh
+   !topEarnings [startDate] [endDate] [Number of countries to return (Default: 10)]
+```
+- Get list of your top revenue earning countries 🌎💰
+```sh
+   !geo_revenue [startDate] [endDate] [Number of countries to return]
+```
+- More detailed report of views, revenue, cpm, etc by country 🌎
+```sh
+   !geoReport [startDate] [endDate] [Number of countries to return]
+```
+- Get highest preforming ad types within specified time range 💰
+```sh
+   !adtype [startDate] [endDate]
+```
+- Get demographics data (age and gender) of viewers 👨‍👩‍👧‍👧
+```sh
+   !demographics [startDate] [endDate]
+```
+- Return list of top sharing methods for your videos. 📤
+```sh
+   !shares [startDate] [endDate] [Number of results to return (Default: 5)]
+```
+- Return YouTube search terms resulting in the most views of your video(s). 🔍
+```sh
+   !search [startDate] [endDate] [Number of results to return (Default: 10)]
+```
+- Return top operating systems watching your videos (ranked by views). 📟
+```sh
+   !os [startDate] [endDate] [Number of results to return (Default: 10)]
+```
+- Return everything. Call every method and output all available data ♾️
+```sh
+   !everything [startDate] [endDate]
+```
+- Send all Discord commands with explainations. 🦮
+```sh
+   !help
+```
+- Check to make sure bot is running
+```sh
+   !ping
+```
 
 
 ## Set-Up
@@ -88,5 +132,5 @@ Build with Docker only after running locally and generating a `credentials.json`
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
 
 ## Final Remarks
-Thank you for your interest in my repository. 
-Please, leave a :star2: so others can discover this hidden gem as well!
+Please leave a :star2: if you found this bot helpful!
+May your analytics skyrocket up📈

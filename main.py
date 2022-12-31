@@ -209,7 +209,6 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 
-
 async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         youtubeAnalytics = get_service()
@@ -221,23 +220,19 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
             endDate=end,
             dimensions='adType',
             metrics='grossRevenue,adImpressions,cpm',
-            sort='adType'
+            sort='-grossRevenue'
         )
 
         # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
         start_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/')
         end_str = (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-        preformance = f'Ad Preformance ({start_str}\t-\t{end_str})\n'
-        preformance += '-' * (int(len(preformance))*2) + '\n'
-        preformance += f'| {"": <20} {"Ad Type": <25}| {"": <20}{"Gross Revenue": <25}| {"Impressions": <25}| {"CPM": <25}|\n'
-        preformance += '-' * (int(len(preformance))) + '\n'
+        preformance = f'Ad Preformance ({start_str}\t-\t{end_str})\n\n'
 
         # Parse the response into nice formatted string
         for row in response['rows']:
-            preformance += f'| {row[0]: <40}\t| {"": <20}${round(row[1],2): <25,}\t| {round(row[2],2): <25,}\t| ${round(row[3],2): <25,}\t|\n'
+            preformance += f'Ad Type:\t{row[0]}\n\tGross Revenue:\t${round(row[1],2):,}\tCPM:\t${round(row[3],2):,}\tImpressions:\t{round(row[2],2):,}\n\n\n'
 
-        preformance += '-' * (int(len(preformance) / 11)) + '\n'
         return preformance
 
     except Exception as e:
@@ -263,15 +258,12 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
         # Parse the response using rows and columnHeaders
         report = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
         for row in response['rows']:
+            report += f'{row[0]}:\n'
             for i in range(len(row)):
-                try:
-                    column_name = response["columnHeaders"][i]["name"]
-                    column_value = row[i],
-                    report += f'{column_name}:{column_value}\n'
-                except:
-                    column_name = response["columnHeaders"][i]["name"]
-                    column_value = row[i]
-                    report += f'{column_name}:{column_value}\n'
+                if "country" in response["columnHeaders"][i]["name"]:
+                    continue
+                report += f'\t{response["columnHeaders"][i]["name"]}:\t{round(row[i],2):,}\n'
+                
                 if len(report) > 1500:
                     return report
 
@@ -380,9 +372,9 @@ async def get_operating_stats(results = 10, start=datetime.datetime.now().strfti
     start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
         '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
     os = f'Top Operating System ({start_str}\t-\t{end_str})\n'
-
+    # {round(row[i],2):,}
     for row in request['rows']:
-        os += f'\t{row[0]}:\n\t\tViews:\t\t{row[1]}\n\t\tEstimated Watchtime:\t\t{row[1]}\n'
+        os += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[1],2):,}\n'
     return os
 
 if __name__ == "__main__":
@@ -672,18 +664,18 @@ if __name__ == "__main__":
     @bot.command()
     async def help(ctx):
         available_commands = [
-            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1 \t!stats 01/01/2021 01/31/2021\n",
-            "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\n",
+            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1\t,\t!stats 01/01/2021 01/31/2021\n\n",
+            "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\t,\t!getMonth 10/2020\n",
             "!lifetime - Get lifetime stats - Get lifetime stats\n",
-            "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\n",
-            "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\n",
-            "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\n",
-            "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\n",
-            "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\n",
-            "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\n",
-            "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\n",
-            "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\n",
-            "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\n",
+            "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\nExample: !topEarnings 01/01 12/1 5\n\n",
+            "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\nExample: !geo_revenue 01/01 12/1 5\n\n",
+            "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\nExample: !geoReport 01/01 12/1 5\n\n",
+            "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\nExample: !adtype 01/01 12/1\n\n",
+            "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\nExample: !demographics 01/01 12/1\n\n",
+            "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\nExample: !shares 01/01 12/1 5\n\n",
+            "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\nExample: !search 01/01 12/1 5\n\n",
+            "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\nExample: !os 01/01 12/1 5\n\n",
+            "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
             "!restart - Restart the bot",
             "!help\n!ping"
         ]
@@ -691,7 +683,7 @@ if __name__ == "__main__":
         # Use the join method to concatenate all the elements in the list
         available_commands = "\n".join(available_commands)
 
-        await ctx.send(f"Available commands:\n\n{available_commands}")
+        await ctx.send(f"Available commands:\n\n{available_commands}\n\n\n\"[brackets indicate optional values to pass in, if none are provided, default values will be used.]\"\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.")
 
     # Restart command
     @bot.command(name='restart')
