@@ -82,6 +82,7 @@ Optional Text is denoted using [brackets]
 - `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers
 - `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos.
 - `!search [startDate] [endDate] [# of results to return (Default: 10)]` - Return top specified highest search traffic terms (sorted by views).
+- `!os [startDate] [endDate] [# of results to return (Default: 10)]` - Return top operating systems watching your videos (ranked by views).
 - `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data
 - `!help` - Send all commands.
 

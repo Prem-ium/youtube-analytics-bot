@@ -361,6 +361,30 @@ async def get_traffic_source(results=10, start=datetime.datetime.now().strftime(
     print(f'Traffic Report Generated:\n{traffic}')
 
     return traffic
+
+
+async def get_operating_stats(results = 10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+    youtubeAnalytics = get_service()
+    request = youtubeAnalytics.reports().query(
+        dimensions="operatingSystem",
+        endDate=end,
+        #filters="deviceType==MOBILE",
+        maxResults=results,
+        ids="channel==MINE",
+        metrics="views,estimatedMinutesWatched",
+        sort="-views",
+        startDate=start
+    ).execute()
+    print(request)
+    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
+        '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+    os = f'Top Operating System ({start_str}\t-\t{end_str})\n'
+
+    for row in request['rows']:
+        os += f'\t{row[0]}:\n\t\tViews:\t\t{row[1]}\n\t\tEstimated Watchtime:\t\t{row[1]}\n'
+    return os
+
 if __name__ == "__main__":
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
@@ -579,6 +603,20 @@ if __name__ == "__main__":
             print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
+    # Top Operating Systems
+    @bot.command(aliases=['os', 'operating_systems', 'operatingSystems'])
+    async def top_os(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
+        startDate, endDate = await update_dates(startDate, endDate)
+        try:
+            await ctx.send(await get_operating_stats(results, startDate, endDate))
+            print(f'\n{startDate} - {endDate} operating systems result sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
     # Send everything.
     @bot.command(aliases=['everything'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
@@ -608,6 +646,9 @@ if __name__ == "__main__":
             # Get search terms report
             search_terms = await get_traffic_source(10, startDate, endDate)
 
+            # Get top operating systems
+            top_os = await get_operating_stats(10, startDate, endDate)
+
             # Send everything
             await ctx.send(stats + '\n\n.')
             await ctx.send(top_rev + '\n\n.')
@@ -617,6 +658,7 @@ if __name__ == "__main__":
             await ctx.send(demographics + '\n\n.')
             await ctx.send(shares + '\n\n.')
             await ctx.send(search_terms + '\n\n.')
+            await ctx.send(top_os + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
         except UserAccessTokenError:
             # If the user's access token is invalid, send a message to the user
@@ -640,6 +682,7 @@ if __name__ == "__main__":
             "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\n",
             "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\n",
             "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\n",
+            "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\n",
             "!restart - Restart the bot",
             "!help\n!ping"
