@@ -1,6 +1,23 @@
-# YouTube Analytics Discord Bot
+# YouTube Analytics Discord Bot 🤖
 
 An awesome Discord bot to retrieve YouTube Analytics data with ease.
+
+## Discord Commands
+Optional Text is denoted using [brackets]
+- `!stats [startDate] [endDate]`- Return views, subscribers gained, estimated revenue, cpm, ad playbacks, etc. stats within time range. Defaults to current month 📅
+- `!getMonth [month/year]`- Return stats for a specific month 📆
+- `!lifetime` - Get lifetime stats 🧮
+- `!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]` - Return top specified highest revenue earning videos. 💰
+- `!geo_revenue [startDate] [endDate] [# of countries to return]` - Top Specific (default 10) countries by revenue 🌎💰
+- `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country 🌎
+- `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range 💰
+- `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers 👨‍👩‍👧‍👧
+- `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos. 📤
+- `!search [startDate] [endDate] [# of results to return (Default: 10)]` - Return top specified highest search traffic terms (sorted by views). 🔍
+- `!os [startDate] [endDate] [# of results to return (Default: 10)]` - Return top operating systems watching your videos (ranked by views). 📟
+- `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data ♾️
+- `!help` - Send all commands. 🦮
+
 
 ## Set-Up
 
@@ -69,23 +86,6 @@ Build with Docker only after running locally and generating a `credentials.json`
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
-
-## Discord Commands
-Optional Text is denoted using [brackets]
-- `!stats [startDate] [endDate]`- Return stats within time range. Defaults to current month
-- `!getMonth [month/year]`- Return stats for a specific month
-- `!lifetime` - Get lifetime stats
-- `!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]` - Return top specified highest revenue earning videos.
-- `!geo_revenue [startDate] [endDate] [# of countries to return]` - Top Specific (default 10) countries by revenue
-- `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country
-- `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range
-- `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers
-- `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos.
-- `!search [startDate] [endDate] [# of results to return (Default: 10)]` - Return top specified highest search traffic terms (sorted by views).
-- `!os [startDate] [endDate] [# of results to return (Default: 10)]` - Return top operating systems watching your videos (ranked by views).
-- `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data
-- `!help` - Send all commands.
-
 
 ## Final Remarks
 Thank you for your interest in my repository. 
