@@ -74,13 +74,14 @@ Build with Docker only after running locally and generating a `credentials.json`
 Optional Text is denoted using [brackets]
 - `!stats [startDate] [endDate]`- Return stats within time range. Defaults to current month
 - `!getMonth [month/year]`- Return stats for a specific month
+- `!lifetime` - Get lifetime stats
 - `!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)]` - Return top specified highest revenue earning videos.
 - `!geo_revenue [startDate] [endDate] [# of countries to return]` - Top Specific (default 10) countries by revenue
 - `!geoReport [startDate] [endDate] [# of countries to return]`- More detailed report of views, revenue, cpm, etc by country
 - `!adtype [startDate] [endDate]` - Get highest preforming ad types within specified time range
-- `!lifetime` - Get lifetime stats
 - `!demographics [startDate] [endDate]` - Get demographics data (age and gender) of viewers
 - `!shares [startDate] [endDate] [# of results to return (Default: 5)]` - Return top specified highest shares videos.
+- `!search [startDate] [endDate] [# of results to return (Default: 10)]` - Return top specified highest search traffic terms (sorted by views).
 - `!everything [startDate] [endDate]` - Return everything. Call every method and output all available data
 - `!help` - Send all commands.
 

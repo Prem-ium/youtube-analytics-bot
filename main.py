@@ -338,6 +338,29 @@ async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-
     print(f'Shares Report Generated & Sent:\n{shares}')
     return shares
 
+async def get_traffic_source(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+    youtubeAnalytics = get_service()
+    request = youtubeAnalytics.reports().query(
+        dimensions="insightTrafficSourceDetail",
+        endDate=end,
+        filters="insightTrafficSourceType==YT_SEARCH",
+        ids="channel==MINE",
+        maxResults=results,
+        metrics="views",
+        sort="-views",
+        startDate=start
+    ).execute()
+
+    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+
+    traffic = f'Top Search Traffic Terms ({start_str}\t-\t{end_str})\n\n'
+    # Parse the response into nice formatted string
+    for row in request['rows']:
+        traffic += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+    print(f'Traffic Report Generated:\n{traffic}')
+
+    return traffic
 if __name__ == "__main__":
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
@@ -384,7 +407,20 @@ if __name__ == "__main__":
             print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
-
+    # Lifetime stats
+    @bot.command(aliases=['lifetime', 'alltime'])
+    async def lifetime_method(ctx):
+        try:
+            stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
+            await ctx.send(stats)
+            print('\nLifetime stats sent\n')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
     @bot.command(aliases=['lastMonth'])
     async def lastmonth(ctx):
         # Get the last month's start and end dates
@@ -501,21 +537,6 @@ if __name__ == "__main__":
             # Return from the function
             return
 
-    # Lifetime stats
-    @bot.command(aliases=['lifetime', 'alltime'])
-    async def lifetime_method(ctx):
-        try:
-            stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
-            await ctx.send(stats)
-            print('\nLifetime stats sent\n')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
-
     # Demographics Report
     @bot.command(aliases=['demographics', 'gender', 'age'])
     async def demo_graph(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
@@ -537,6 +558,20 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_shares(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} shares result sent')
+        except UserAccessTokenError:
+            # If the user's access token is invalid, send a message to the user
+            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+            # Print a message to the console indicating that the user's access token is invalid
+            print(f'\n{ctx.author.name}\'s access token is invalid')
+            # Return from the function
+            return
+    # Search Terms Report
+    @bot.command(aliases=['search', 'search_terms', 'searchTerms'])
+    async def search_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
+        startDate, endDate = await update_dates(startDate, endDate)
+        try:
+            await ctx.send(await get_traffic_source(results, startDate, endDate))
+            print(f'\n{startDate} - {endDate} search terms result sent')
         except UserAccessTokenError:
             # If the user's access token is invalid, send a message to the user
             await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
@@ -570,6 +605,9 @@ if __name__ == "__main__":
             # Get shares report
             shares = await get_shares(5, startDate, endDate)
 
+            # Get search terms report
+            search_terms = await get_traffic_source(10, startDate, endDate)
+
             # Send everything
             await ctx.send(stats + '\n\n.')
             await ctx.send(top_rev + '\n\n.')
@@ -578,6 +616,7 @@ if __name__ == "__main__":
             await ctx.send(georeport + '\n\n.')
             await ctx.send(demographics + '\n\n.')
             await ctx.send(shares + '\n\n.')
+            await ctx.send(search_terms + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
         except UserAccessTokenError:
             # If the user's access token is invalid, send a message to the user
@@ -593,13 +632,14 @@ if __name__ == "__main__":
         available_commands = [
             "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1 \t!stats 01/01/2021 01/31/2021\n",
             "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\n",
+            "!lifetime - Get lifetime stats - Get lifetime stats\n",
             "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\n",
             "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\n",
             "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\n",
             "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\n",
-            "!lifetime - Get lifetime stats - Get lifetime stats\n",
             "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\n",
             "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\n",
+            "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\n",
             "!restart - Restart the bot",
             "!help\n!ping"
