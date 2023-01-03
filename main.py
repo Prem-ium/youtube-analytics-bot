@@ -57,9 +57,11 @@ async def update_dates(startDate, endDate):
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
     # If the start and end dates are in the first month of the year & they are the same date
-    if (splitStartDate[1] == '01' and splitEndDate[1] == '01') and startDate == endDate:
+    if (splitStartDate[1] == '01' and (splitStartDate[0] == splitEndDate[0] and splitEndDate[1] in ['01', '02', '03'])):
         # Get the year from the start date, or use the current year
         year = startDate.split('/')[2] if (len(startDate.split('/')) > 2) else datetime.datetime.now().strftime("%Y")
+        # If month is January, use the previous year
+        year = str(int(year) - 1 if int(splitStartDate[0]) == 1 else year)
         # Use the full 4-digit year
         year = f'20{year}' if len(year) == 2 else year
         # Get the previous month
