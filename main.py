@@ -9,8 +9,9 @@ import google_auth_oauthlib
 import googleapiclient.errors
 import discord
 
+from oauth2client.client import HttpAccessTokenRefreshError
 from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.exceptions import RefreshError, UserAccessTokenError, GoogleAuthError
+from google.auth.exceptions import RefreshError, GoogleAuthError
 from googleapiclient.discovery import build
 from oauth2client.file import Storage
 from discord.ext import commands, tasks
@@ -52,6 +53,14 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
+
+# Create Refresh Token (Un-Tested & unused)
+def refresh_token():
+    flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+    flow.run_local_server(port=0)
+    credentials = flow.credentials
+    storage = Storage('credentials.json')
+    storage.put(credentials)
 
 async def update_dates(startDate, endDate):
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
@@ -418,11 +427,15 @@ if __name__ == "__main__":
             await ctx.send(stats)
             # Print a message to the console indicating that the stats were sent
             print(f'\n{startDate} - {endDate} stats sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     # Lifetime stats
@@ -432,11 +445,15 @@ if __name__ == "__main__":
             stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
             await ctx.send(stats)
             print('\nLifetime stats sent\n')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     @bot.command(aliases=['lastMonth'])
@@ -451,11 +468,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -479,11 +500,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -496,11 +521,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(rev)
             print(f'\n{startDate} - {endDate} top {results} sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -513,11 +542,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) geo-revenue report sent\n')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -530,11 +563,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\n{startDate} - {endDate} earnings by country sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -547,11 +584,15 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\n{startDate} - {endDate} ad preformance sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
@@ -562,11 +603,15 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_demographics(startDate, endDate))
             print(f'\n{startDate} - {endDate} demographics sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     # Shares Report
@@ -576,11 +621,15 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_shares(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} shares result sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     # Search Terms Report
@@ -590,11 +639,15 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_traffic_source(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} search terms result sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     # Top Operating Systems
@@ -604,11 +657,15 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_operating_stats(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} operating systems result sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except HttpAccessTokenRefreshError: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
     # Send everything.
@@ -654,11 +711,15 @@ if __name__ == "__main__":
             await ctx.send(search_terms + '\n\n.')
             await ctx.send(top_os + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
-        except UserAccessTokenError:
-            # If the user's access token is invalid, send a message to the user
-            await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-            # Print a message to the console indicating that the user's access token is invalid
-            print(f'\n{ctx.author.name}\'s access token is invalid')
+        except HttpAccessTokenRefreshError:
+            try:
+                refresh_token()
+                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
+            except: 
+                # If the user's access token is invalid, send a message to the user
+                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
+                # Print a message to the console indicating that the user's access token is invalid
+                print(f'\n{ctx.author.name}\'s access token is invalid')
             # Return from the function
             return
 
