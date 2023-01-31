@@ -131,6 +131,9 @@ Build with Docker only after running locally and generating a `credentials.json`
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
 
+## License
+This repository uses the [BSD 3-Clause “New” or “Revised” License](https://choosealicense.com/licenses/bsd-3-clause/#)
+
 ## Final Remarks
 Please leave a :star2: if you found this bot helpful!
 May your analytics skyrocket up📈
