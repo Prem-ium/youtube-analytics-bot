@@ -5,6 +5,17 @@ An awesome Discord bot to retrieve & output your YouTube Analytics data.
 
 ## Features & Discord Commands
 Start every command with `!`. Optional Command Input is denoted using [brackets].
+
+#### Start & End Date formats:
+- MM / DD Format (MONTH/DATE, Assumes the current year):
+```sh
+   !stats 01/01 12/01
+```
+- MM / DD / YYYY Format Example:
+```sh
+   !stats 01/01/2021 12/31/2021
+```
+#### Discord Commands:
 - YouTube Analytics Report Card. Display Views, Watch-Time, Estimated Revenue, CPM, Ad-Impressions, & more. Defaults to current month if date range not specified📅
 ```sh
    !stats [startDate] [endDate]
@@ -19,15 +30,15 @@ Start every command with `!`. Optional Command Input is denoted using [brackets]
 ```
 - Get a list of the highest revenue earning videos on your channel. 💰
 ```sh
-   !topEarnings [startDate] [endDate] [Number of countries to return (Default: 10)]
+   !topEarnings [startDate] [endDate] [Length to Return]
 ```
 - Get list of your top revenue earning countries 🌎💰
 ```sh
-   !geo_revenue [startDate] [endDate] [Number of countries to return]
+   !geo_revenue [startDate] [endDate] [Length to Return]
 ```
 - More detailed report of views, revenue, cpm, etc by country 🌎
 ```sh
-   !geoReport [startDate] [endDate] [Number of countries to return]
+   !geoReport [startDate] [endDate] [Length to Return]
 ```
 - Get highest preforming ad types within specified time range 💰
 ```sh
@@ -39,15 +50,15 @@ Start every command with `!`. Optional Command Input is denoted using [brackets]
 ```
 - Return list of top sharing methods for your videos. 📤
 ```sh
-   !shares [startDate] [endDate] [Number of results to return (Default: 5)]
+   !shares [startDate] [endDate] [Length to Return]
 ```
 - Return YouTube search terms resulting in the most views of your video(s). 🔍
 ```sh
-   !search [startDate] [endDate] [Number of results to return (Default: 10)]
+   !search [startDate] [endDate] [Length to Return]
 ```
 - Return top operating systems watching your videos (ranked by views). 📟
 ```sh
-   !os [startDate] [endDate] [Number of results to return (Default: 10)]
+   !os [startDate] [endDate] [Length to Return]
 ```
 - Return everything. Call every method and output all available data ♾️
 ```sh
@@ -133,7 +144,6 @@ Build with Docker only after running locally and generating a `credentials.json`
 
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License](https://choosealicense.com/licenses/bsd-3-clause/#)
-
 ## Final Remarks
-Please leave a :star2: if you found this bot helpful!
+Please leave a :star2: if you found this bot useful!
 May your analytics skyrocket up📈

@@ -30,27 +30,22 @@
 
 import os, datetime, traceback, calendar
 
-from calendar import monthrange
-from dotenv import load_dotenv
-from time import sleep
+from calendar                       import monthrange
+from dotenv                         import load_dotenv
+from time                           import sleep
 
-import google
-import google_auth_oauthlib
-import googleapiclient.errors
+import google, google_auth_oauthlib, googleapiclient.errors
 import discord
 
-from oauth2client.client import HttpAccessTokenRefreshError
-from google_auth_oauthlib.flow import InstalledAppFlow
-from google.auth.exceptions import RefreshError, GoogleAuthError
-from googleapiclient.discovery import build
-from oauth2client.file import Storage
-from discord.ext import commands, tasks
-from oauth2client import client, tools
+from oauth2client.client            import HttpAccessTokenRefreshError
+from google_auth_oauthlib.flow      import InstalledAppFlow
+from google.auth.exceptions         import RefreshError, GoogleAuthError
+from googleapiclient.discovery      import build
+from oauth2client.file              import Storage
+from discord.ext                    import commands, tasks
+from oauth2client                   import client, tools
 
 load_dotenv()
-
-SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
-          "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 
 if not os.environ["DISCORD_TOKEN"]:
     raise Exception("DISCORD_TOKEN is missing within .env file, please add it and try again.")
@@ -67,9 +62,11 @@ YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 
 # Whether to use keep_alive.py
 if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
-    from keep_alive import keep_alive
+    from keep_alive                     import keep_alive
     keep_alive()
 
+SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
+          "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
@@ -83,14 +80,6 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
-
-# Create Refresh Token (Un-Tested & unused)
-def refresh_token():
-    flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-    flow.run_local_server(port=0)
-    credentials = flow.credentials
-    storage = Storage('credentials.json')
-    storage.put(credentials)
 
 async def update_dates(startDate, endDate):
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
@@ -160,9 +149,11 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
         response_str = f'YouTube Analytics Report ({start}\t-\t{end})\n\n'
         response_str += f'Views:\t{round(views,2):,}\nMinutes Watched:\t{round(minutes,2):,}\nSubscribers Gained:\t{round(subscribersGained,2):,}\n\n'
         response_str += f'Estimated Revenue:\t${round(revenue,2):,}\nCPM:\t${round(cpm,2):,}\nMonetized Playbacks (±2.0%):\t{round(monetizedPlaybacks,2):,}\nPlayback CPM:\t${round(playbackCpm,2):,}\nAd Impressions:\t{round(adImpressions,2):,}'
-
         print(response_str + '\nSending to Discord...')
         return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -204,15 +195,18 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         # Build the response string
-        top_results = f'Top {results} Earning Videos ({start}\t-\t{end}):\n\n'
+        response_str = f'Top {results} Earning Videos ({start}\t-\t{end}):\n\n'
         total = 0
         for i in range(len(response['items'])):
-            top_results += f'{i + 1}) {response["items"][i]["snippet"]["title"]} - ${round(earnings[i], 2):,}\n'
+            response_str += f'{i + 1}) {response["items"][i]["snippet"]["title"]} - ${round(earnings[i], 2):,}\n'
             total += earnings[i]
-        top_results += f'\n\nTop {results} Total Earnings: ${round(total, 2):,}'
-        print(top_results)
+        response_str += f'\n\nTop {results} Total Earnings: ${round(total, 2):,}'
+        print(response_str)
 
-        return top_results
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -245,6 +239,9 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
             print(row[0], row[1])
 
         return return_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -268,14 +265,16 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
         start_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/')
         end_str = (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-        preformance = f'Ad Preformance ({start_str}\t-\t{end_str})\n\n'
+        response_str = f'Ad Preformance ({start_str}\t-\t{end_str})\n\n'
 
         # Parse the response into nice formatted string
         for row in response['rows']:
-            preformance += f'Ad Type:\t{row[0]}\n\tGross Revenue:\t${round(row[1],2):,}\tCPM:\t${round(row[3],2):,}\tImpressions:\t{round(row[2],2):,}\n\n\n'
+            response_str += f'Ad Type:\t{row[0]}\n\tGross Revenue:\t${round(row[1],2):,}\tCPM:\t${round(row[3],2):,}\tImpressions:\t{round(row[2],2):,}\n\n\n'
 
-        return preformance
-
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -297,21 +296,24 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
         )
 
         # Parse the response using rows and columnHeaders
-        report = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
+        response_str = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
         for row in response['rows']:
-            report += f'{row[0]}:\n'
+            response_str += f'{row[0]}:\n'
             for i in range(len(row)):
                 if "country" in response["columnHeaders"][i]["name"]:
                     continue
-                report += f'\t{response["columnHeaders"][i]["name"]}:\t{round(row[i],2):,}\n'
+                response_str += f'\t{response["columnHeaders"][i]["name"]}:\t{round(row[i],2):,}\n'
                 
-                if len(report) > 1500:
-                    return report
+                if len(response_str) > 1500:
+                    return response_str
 
-            report += '\n'
+            response_str += '\n'
 
-        print(f'Data received:\t{response}\n\nReport Generated:\n{report}')
-        return report
+        print(f'Data received:\t{response}\n\nReport Generated:\n{response_str}')
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
@@ -333,7 +335,7 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
                # Format the start and end dates
         startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
             '-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
-        demographics = f'Gender Viewership Demographics ({startDate}\t-\t{endDate})\n\n'
+        response_str = f'Gender Viewership Demographics ({startDate}\t-\t{endDate})\n\n'
 
         # Parse the response into nice formatted string
         for row in response['rows']:
@@ -341,83 +343,106 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
             # split string after index of 'e'
             row[0] = row[0].split('e')
 
-            demographics += f'{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}\n'
-        print(f'Demographics Report Generated & Sent:\n{demographics}')
-        return demographics
-
+            response_str += f'{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}\n'
+        print(f'Demographics Report Generated & Sent:\n{response_str}')
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
-    youtubeAnalytics = get_service()
-    request = youtubeAnalytics.reports().query(
-        dimensions="sharingService",
-        startDate=start,
-        endDate=end,
-        ids="channel==MINE",
-        maxResults=results,
-        metrics="shares",
-        sort="-shares"
-    ).execute()
+    try:
+        youtubeAnalytics = get_service()
+        request = youtubeAnalytics.reports().query(
+            dimensions="sharingService",
+            startDate=start,
+            endDate=end,
+            ids="channel==MINE",
+            maxResults=results,
+            metrics="shares",
+            sort="-shares"
+        ).execute()
 
-    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+        start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-    shares = f'Top Sharing Services ({start_str}\t-\t{end_str})\n\n'
-    # Parse the response into nice formatted string
-    for row in request['rows']:
-        shares += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
-    print(f'Shares Report Generated & Sent:\n{shares}')
-    return shares
+        response_str = f'Top Sharing Services ({start_str}\t-\t{end_str})\n\n'
+        # Parse the response into nice formatted string
+        for row in request['rows']:
+            response_str += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+        print(f'Shares Report Generated & Sent:\n{response_str}')
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 async def get_traffic_source(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
-    youtubeAnalytics = get_service()
-    request = youtubeAnalytics.reports().query(
-        dimensions="insightTrafficSourceDetail",
-        endDate=end,
-        filters="insightTrafficSourceType==YT_SEARCH",
-        ids="channel==MINE",
-        maxResults=results,
-        metrics="views",
-        sort="-views",
-        startDate=start
-    ).execute()
+    try:
+        youtubeAnalytics = get_service()
+        request = youtubeAnalytics.reports().query(
+            dimensions="insightTrafficSourceDetail",
+            endDate=end,
+            filters="insightTrafficSourceType==YT_SEARCH",
+            ids="channel==MINE",
+            maxResults=results,
+            metrics="views",
+            sort="-views",
+            startDate=start
+        ).execute()
 
-    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+        start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
-    traffic = f'Top Search Traffic Terms ({start_str}\t-\t{end_str})\n\n'
-    # Parse the response into nice formatted string
-    for row in request['rows']:
-        traffic += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
-    print(f'Traffic Report Generated:\n{traffic}')
+        response_str = f'Top Search Traffic Terms ({start_str}\t-\t{end_str})\n\n'
+        # Parse the response into nice formatted string
+        for row in request['rows']:
+            response_str += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+        print(f'Traffic Report Generated:\n{response_str}')
 
-    return traffic
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, please check the logs."
 
 
 async def get_operating_stats(results = 10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
-    youtubeAnalytics = get_service()
-    request = youtubeAnalytics.reports().query(
-        dimensions="operatingSystem",
-        endDate=end,
-        #filters="deviceType==MOBILE",
-        maxResults=results,
-        ids="channel==MINE",
-        metrics="views,estimatedMinutesWatched",
-        sort="-views",
-        startDate=start
-    ).execute()
-    print(request)
-    # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-    start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
-        '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
-    os = f'Top Operating System ({start_str}\t-\t{end_str})\n'
-    # {round(row[i],2):,}
-    for row in request['rows']:
-        os += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[1],2):,}\n'
-    return os
-
+    try:
+        youtubeAnalytics = get_service()
+        request = youtubeAnalytics.reports().query(
+            dimensions="operatingSystem",
+            endDate=end,
+            #filters="deviceType==MOBILE",
+            maxResults=results,
+            ids="channel==MINE",
+            metrics="views,estimatedMinutesWatched",
+            sort="-views",
+            startDate=start
+        ).execute()
+        print(request)
+        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+        start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
+            '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+        response_str = f'Top Operating System ({start_str}\t-\t{end_str})\n'
+        # {round(row[i],2):,}
+        for row in request['rows']:
+            response_str += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[1],2):,}\n'
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+    
 if __name__ == "__main__":
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
@@ -446,7 +471,7 @@ if __name__ == "__main__":
             f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     # Retrieve Analytic stats within specified date range, defaults to current month
-    @bot.command(aliases=['stats', 'thisMonth'])
+    @bot.command(aliases=['stats', 'thisMonth', 'this_month'])
     async def analyze(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         # Update the start and end dates to be in the correct format
         startDate, endDate = await update_dates(startDate, endDate)
@@ -457,36 +482,18 @@ if __name__ == "__main__":
             await ctx.send(stats)
             # Print a message to the console indicating that the stats were sent
             print(f'\n{startDate} - {endDate} stats sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Lifetime stats
-    @bot.command(aliases=['lifetime', 'alltime'])
+    @bot.command(aliases=['lifetime', 'alltime', 'allTime'])
     async def lifetime_method(ctx):
         try:
             stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
             await ctx.send(stats)
             print('\nLifetime stats sent\n')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
-    @bot.command(aliases=['lastMonth'])
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+    @bot.command(aliases=['lastMonth', 'lastmonth'])
     async def lastmonth(ctx):
         # Get the last month's start and end dates
         startDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
@@ -498,20 +505,11 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
-    @bot.command(aliases=['getMonth'])
+    @bot.command(aliases=['getMonth', 'month'])
     async def month(ctx, period=datetime.datetime.now().strftime("%m/%Y")):
         # Split the period into month and year
         period = period.split('/')
@@ -530,20 +528,11 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Retrieve top earning videos within specified date range, defaults to current month
-    @bot.command(aliases=['topEarnings'])
+    @bot.command(aliases=['topEarnings', 'topearnings', 'top_earnings'])
     async def top(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
@@ -551,20 +540,11 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(rev)
             print(f'\n{startDate} - {endDate} top {results} sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Top revenue by country
-    @bot.command(aliases=['geo_revenue', 'geoRevenue'])
+    @bot.command(aliases=['geo_revenue', 'geoRevenue', 'georevenue'])
     async def detailed_georeport(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)        
         try:
@@ -572,20 +552,11 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\nLast month ({startDate} - {endDate}) geo-revenue report sent\n')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Geo Report (views, revenue, cpm, etc)
-    @bot.command(aliases=['geo_report', 'geoReport'])
+    @bot.command(aliases=['geo_report', 'geoReport', 'georeport'])
     async def country(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=3):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
@@ -593,20 +564,11 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\n{startDate} - {endDate} earnings by country sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Ad Type Preformance Data
-    @bot.command(aliases=['adtype', 'adPreformance'])
+    @bot.command(aliases=['adtype', 'adPreformance', 'adpreformance'])
     async def ad(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
@@ -614,17 +576,8 @@ if __name__ == "__main__":
             # Send the stats to the user
             await ctx.send(stats)
             print(f'\n{startDate} - {endDate} ad preformance sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Demographics Report
     @bot.command(aliases=['demographics', 'gender', 'age'])
@@ -633,73 +586,37 @@ if __name__ == "__main__":
         try:
             await ctx.send(await get_demographics(startDate, endDate))
             print(f'\n{startDate} - {endDate} demographics sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Shares Report
-    @bot.command(aliases=['shares', 'shares_report', 'sharesReport'])
+    @bot.command(aliases=['shares', 'shares_report', 'sharesReport', 'share_report', 'shareReport'])
     async def share_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             await ctx.send(await get_shares(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} shares result sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Search Terms Report
-    @bot.command(aliases=['search', 'search_terms', 'searchTerms'])
+    @bot.command(aliases=['search', 'search_terms', 'searchTerms', 'search_report', 'searchReport'])
     async def search_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             await ctx.send(await get_traffic_source(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} search terms result sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Top Operating Systems
-    @bot.command(aliases=['os', 'operating_systems', 'operatingSystems'])
+    @bot.command(aliases=['os', 'operating_systems', 'operatingSystems', 'topoperatingsystems'])
     async def top_os(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             await ctx.send(await get_operating_stats(results, startDate, endDate))
             print(f'\n{startDate} - {endDate} operating systems result sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except HttpAccessTokenRefreshError: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Send everything.
-    @bot.command(aliases=['everything'])
+    @bot.command(aliases=['everything', 'all', 'all_stats', 'allStats', 'allstats'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
@@ -741,23 +658,14 @@ if __name__ == "__main__":
             await ctx.send(search_terms + '\n\n.')
             await ctx.send(top_os + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
-        except HttpAccessTokenRefreshError:
-            try:
-                refresh_token()
-                await ctx.send('Your access token (credentials.json) was refreshed, please re-enter the command.')
-            except: 
-                # If the user's access token is invalid, send a message to the user
-                await ctx.send('Your access token (credentials.json) is invalid, please re-authenticate & reb-build the bot.')
-                # Print a message to the console indicating that the user's access token is invalid
-                print(f'\n{ctx.author.name}\'s access token is invalid')
-            # Return from the function
-            return
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Help command
     @bot.command()
     async def help(ctx):
         available_commands = [
-            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/1\t,\t!stats 01/01/2021 01/31/2021\n\n",
+            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/01\t,\t!stats 01/01/2021 01/31/2021\n\n",
             "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\t,\t!getMonth 10/2020\n",
             "!lifetime - Get lifetime stats - Get lifetime stats\n",
             "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\nExample: !topEarnings 01/01 12/1 5\n\n",
@@ -776,7 +684,7 @@ if __name__ == "__main__":
         # Use the join method to concatenate all the elements in the list
         available_commands = "\n".join(available_commands)
 
-        await ctx.send(f"Available commands:\n\n{available_commands}\n\n\n\"[brackets indicate optional values to pass in, if none are provided, default values will be used.]\"\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.")
+        await ctx.send(f"Available commands:\n\n{available_commands}\n\n\n\"[brackets indicate optional values to pass in, if none are provided, default values will be used.]\"\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.\n\nBot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot\n\n")
 
     # Restart command
     @bot.command(name='restart')
