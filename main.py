@@ -71,20 +71,29 @@ CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
 def refresh_token():
     with open('credentials.json') as f:
-        data = json.load(f)
-        client_id = data['client_id']
-        client_secret = data['client_secret']
-        refresh_token = data['refresh_token']
-        grant_type = 'refresh_token'
+        cred = json.load(f)
+        data = {
+            'client_id': cred['client_id'],
+            'client_secret': cred['client_secret'],
+            'refresh_token': cred['refresh_token'],
+            'grant_type': 'refresh_token'
+        }
 
-    data = {
-        'client_id': client_id,
-        'client_secret': client_secret,
-        'refresh_token': refresh_token,
-        'grant_type': grant_type
-    }
-
-    response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
+        response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
+        if response.status_code == 200:
+            response_json = response.json()
+        
+            # Update token_response with new access token and expiry time
+            cred['token_response']['access_token'] = response_json['access_token']
+            cred['token_response']['expires_in'] = response_json['expires_in']
+            
+            # Calculate and update token expiry time
+            now = datetime.datetime.now()
+            cred['token_expiry'] = (now + datetime.timedelta(seconds=response_json['expires_in'])).isoformat()
+            
+            # Save updated credentials to file
+            with open('credentials.json', 'w') as f:
+                json.dump(cred, f)
     return response.status_code
 
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
