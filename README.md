@@ -6,7 +6,7 @@ An awesome Discord bot to retrieve & output your YouTube Analytics data.
 ## Features & Discord Commands
 Start every command with `!`. Optional Command Input is denoted using [brackets]. 
 
-Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/tree/main/output-examples) for output examples.
+Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/blob/main/output-examples/README.MD) for output examples.
 
 #### Start & End Date formats:
 - MM / DD Format (MONTH/DATE, Assumes the current year):
