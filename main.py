@@ -67,9 +67,10 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
-CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
+CLIENT_SECRETS_FILE = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
 def refresh_token():
+    message = None
     with open('credentials.json') as f:
         cred = json.load(f)
         data = {
@@ -90,11 +91,14 @@ def refresh_token():
             # Calculate and update token expiry time
             now = datetime.datetime.now()
             cred['token_expiry'] = (now + datetime.timedelta(seconds=response_json['expires_in'])).isoformat()
-            
+            message = f"{response.status_code}:\tSuccessfully refreshed token\n{datetime.datetime.now()}\n"
             # Save updated credentials to file
             with open('credentials.json', 'w') as f:
                 json.dump(cred, f)
-    return response.status_code
+        else:
+            message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
+    print(message)
+    return message
 
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
     credential_path = os.path.join('./', 'credentials.json')
@@ -113,6 +117,7 @@ async def refresh():
     return refresh_token()
 
 async def update_dates(startDate, endDate):
+    print(f'Received start date: {startDate} and end date: {endDate}')
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
     # If the start and end dates are in the first month of the year & they are the same date
@@ -147,7 +152,7 @@ async def update_dates(startDate, endDate):
             # Set the end date to the full date including the year
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
     # Print a message indicating the updated dates
-    print(f'Updating dates to {startDate} - {endDate}')
+    print(f'Updated dates to {startDate} - {endDate}')
     return startDate, endDate
 
 async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
@@ -475,6 +480,12 @@ async def get_operating_stats(results = 10, start=datetime.datetime.now().strfti
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
     
 if __name__ == "__main__":
+    
+    # Attempt token refresh at the start of the program
+    try: refresh_token()
+    except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
+    except Exception as e: print(e.__class__.__name__, e)
+
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
     # Create the bot with the specified command prefix and intents
@@ -490,12 +501,7 @@ if __name__ == "__main__":
             # Get the specified channel
             channel = bot.get_channel(DISCORD_CHANNEL)
             # Send a message to the channel indicating that the bot is ready
-            await channel.send('Analytics Bot is ready!')
-
-            try:
-                await refresh()
-            except Exception:
-                pass
+            await channel.send('YouTube Analytics Bot is ready!')
 
     # Bot ping-pong command
     @bot.command(name='ping')
@@ -656,9 +662,8 @@ if __name__ == "__main__":
     async def refresh_API_token(ctx):
         try:
             status = await refresh()
-            stat = f'Token Refresh Status:\t{status}'
-            print(stat)
-            await ctx.send(stat)
+            print(status)
+            await ctx.send(status)
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 

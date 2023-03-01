@@ -144,6 +144,8 @@ Build with Docker only after running locally and generating a `credentials.json`
 
 `YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credentials's Page after enabling the YouTube Data API)
 ##### Optional .env:
+`CLIENT_PATH` = Path of YouTube/Google Client Secret JSON file. Defaults to current directory (file named "CLIENT_SECRET.json")
+
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
