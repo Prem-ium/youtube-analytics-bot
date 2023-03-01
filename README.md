@@ -66,6 +66,10 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 ```sh
    !everything [startDate] [endDate]
 ```
+- Refresh API Token!
+```sh
+   !refresh
+```
 - Send all Discord commands with explainations. 🦮
 ```sh
    !help
@@ -143,6 +147,15 @@ Build with Docker only after running locally and generating a `credentials.json`
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
+
+## Donations
+If you find my project helpful and would like to support its development, please consider making a donation. Every little bit helps and is greatly appreciated!
+
+You can donate by clicking on the following button:
+
+<a href="https://www.buymeacoffee.com/prem.ium" target="_blank"><img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a>
+
+Thank you for your support!
 
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License](https://choosealicense.com/licenses/bsd-3-clause/#)

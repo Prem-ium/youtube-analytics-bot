@@ -1,4 +1,4 @@
 .env
 *.json
-testing*.py
+test*
 boilerplateTesting*.py

@@ -28,7 +28,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os, datetime, traceback, calendar
+import os, datetime, traceback, calendar, requests, json
 
 from calendar                       import monthrange
 from dotenv                         import load_dotenv
@@ -69,6 +69,24 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 CLIENT_SECRETS_FILE = "CLIENT_SECRET.json"
 
+def refresh_token():
+    with open('credentials.json') as f:
+        data = json.load(f)
+        client_id = data['client_id']
+        client_secret = data['client_secret']
+        refresh_token = data['refresh_token']
+        grant_type = 'refresh_token'
+
+    data = {
+        'client_id': client_id,
+        'client_secret': client_secret,
+        'refresh_token': refresh_token,
+        'grant_type': grant_type
+    }
+
+    response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
+    return response.status_code
+
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
     credential_path = os.path.join('./', 'credentials.json')
     store = Storage(credential_path)
@@ -79,7 +97,11 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
     return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
 def execute_api_request(client_library_function, **kwargs):
+    refresh_token()
     return client_library_function(**kwargs).execute()
+
+async def refresh():
+    return refresh_token()
 
 async def update_dates(startDate, endDate):
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
@@ -461,6 +483,11 @@ if __name__ == "__main__":
             # Send a message to the channel indicating that the bot is ready
             await channel.send('Analytics Bot is ready!')
 
+            try:
+                await refresh()
+            except Exception:
+                pass
+
     # Bot ping-pong command
     @bot.command(name='ping')
     async def ping(ctx):
@@ -493,8 +520,8 @@ if __name__ == "__main__":
             print('\nLifetime stats sent\n')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
-    @bot.command(aliases=['lastMonth', 'lastmonth'])
-    async def lastmonth(ctx):
+    @bot.command(aliases=['lastMonth'])
+    async def lastmonthct(ctx):
         # Get the last month's start and end dates
         startDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
         endDate = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
@@ -509,7 +536,7 @@ if __name__ == "__main__":
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
-    @bot.command(aliases=['getMonth', 'month'])
+    @bot.command(aliases=['getMonth', 'get_month'])
     async def month(ctx, period=datetime.datetime.now().strftime("%m/%Y")):
         # Split the period into month and year
         period = period.split('/')
@@ -615,8 +642,19 @@ if __name__ == "__main__":
             print(f'\n{startDate} - {endDate} operating systems result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+    # Refresh Token
+    @bot.command(aliases=['refresh', 'refresh_token', 'refreshToken'])
+    async def refresh_API_token(ctx):
+        try:
+            status = await refresh()
+            stat = f'Token Refresh Status:\t{status}'
+            print(stat)
+            await ctx.send(stat)
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
     # Send everything.
-    @bot.command(aliases=['everything', 'all', 'all_stats', 'allStats', 'allstats'])
+    @bot.command(aliases=['everything', 'all_stats', 'allStats', 'allstats'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
@@ -677,6 +715,7 @@ if __name__ == "__main__":
             "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\nExample: !search 01/01 12/1 5\n\n",
             "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\nExample: !os 01/01 12/1 5\n\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
+            "!refresh - Refresh the API token!!\n",
             "!restart - Restart the bot",
             "!help\n!ping"
         ]
