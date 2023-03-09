@@ -731,13 +731,14 @@ if __name__ == "__main__":
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
             "!refresh - Refresh the API token!!\n",
             "!restart - Restart the bot",
-            "!help\n!ping"
+            "!help\t!ping"
         ]
         
         # Use the join method to concatenate all the elements in the list
         available_commands = "\n".join(available_commands)
 
-        await ctx.send(f"Available commands:\n\n{available_commands}\n\n\n\"[brackets indicate optional values to pass in, if none are provided, default values will be used.]\"\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.\n\nBot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot\n\n")
+        await ctx.send(f"Available commands:\n\n{available_commands}")
+        await ctx.send(f"\n\n\n\n[brackets indicate optional values to pass in, if none are provided, default values will be used.]\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.\n\nBot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot\n\n")
 
     # Restart command
     @bot.command(name='restart')
