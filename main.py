@@ -1,3 +1,5 @@
+# Github Repository: https://github.com/Prem-ium/youtube-analytics-bot
+
 # BSD 3-Clause License
 # 
 # Copyright (c) 2022-present, Prem Patel
