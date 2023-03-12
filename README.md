@@ -68,7 +68,11 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 ```
 - Refresh API Token!
 ```sh
-   !refresh
+   !refresh [token]
+```
+- Switch Dev Mode On/Off
+```sh
+   !switch
 ```
 - Send all Discord commands with explainations. 🦮
 ```sh
@@ -78,7 +82,17 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 ```sh
    !ping
 ```
+#### Features:
+- Docker Support
+- Developer Mode
+- Analytical Reports delivering information on estimated revenue, cpm, & more
+- Refresh Token Ability
 
+
+#### TODO:
+- Replit Support (Get working program without credentials.json or CLIENT_SECRET.json files in directory)
+- Google & YouTube Keyword SEO Research Command
+- Major Refactor Discord Commands
 
 ## Set-Up
 
@@ -138,6 +152,8 @@ Build with Docker only after running locally and generating a `credentials.json`
 
 
 ## Environment Variables:
+As always, please refer to the `.env.example' file for examples. 
+
 ##### Required .env:
 `DISCORD_TOKEN` = Retrieve from https://discord.com/developers/applications
 
@@ -145,6 +161,10 @@ Build with Docker only after running locally and generating a `credentials.json`
 `YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credentials's Page after enabling the YouTube Data API)
 ##### Optional .env:
 `CLIENT_PATH` = Path of YouTube/Google Client Secret JSON file. Defaults to current directory (file named "CLIENT_SECRET.json")
+
+`DEV_MODE`= Whether to use experimental features or not. MUST have CLIENT_SECRET configured.
+
+`CLIENT_SECRET`= Contents of CLIENT_SECRET.JSON which includes refresh token value. Check .env.example for a reference. 
 
 `DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
 
@@ -161,6 +181,8 @@ Thank you for your support!
 
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License](https://choosealicense.com/licenses/bsd-3-clause/#)
+
 ## Final Remarks
-Please leave a :star2: if you found this bot useful!
+This project was built thanks to YouTube Analytics & Data API Documentation. 
+Please leave a :star2: if you found this project to be cool!
 May your analytics skyrocket up📈

@@ -44,8 +44,10 @@ from googleapiclient.discovery      import build
 from oauth2client.file              import Storage
 from discord.ext                    import commands, tasks
 from oauth2client                   import client, tools
+from google.oauth2.credentials      import Credentials
 
 load_dotenv()
+
 
 if not os.environ["DISCORD_TOKEN"]:
     raise Exception("DISCORD_TOKEN is missing within .env file, please add it and try again.")
@@ -65,11 +67,41 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
     from keep_alive                     import keep_alive
     keep_alive()
 
+DEV_MODE = (os.environ.get("DEV_MODE", "False").lower() == "true")
+
+if DEV_MODE:
+    print(f'Development mode is enabled, using CLIENT_SECRET JSON Dict from .env file!! (Not JSON file)\n\nRemember to adjust your CLIENT_SECRET JSON Dict within .env to include refresh token.\nCheck .env.example for an example.\n\n')
+   
+    try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
+    except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
+    
+else:
+    CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
+
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
-CLIENT_SECRETS_FILE = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
-def refresh_token():
+async def dev_mode():
+    global DEV_MODE, CLIENT_SECRETS
+    DEV_MODE = not DEV_MODE
+    if DEV_MODE:
+        print(f'Development mode is enabled, using CLIENT_SECRET JSON Dict from .env file!! (Not JSON file)\n\nRemember to adjust your CLIENT_SECRET JSON Dict within .env to include refresh token.\nCheck .env.example for an example.\n\n')
+        try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
+        except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
+    else:
+        CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
+
+def refresh_token(token=None):
+    if DEV_MODE:
+        if token is None:   return f"Dev Mode is enabled, please provide a refresh token to update to.\n"
+        try:
+            print(CLIENT_SECRETS)
+            refresh_token = {"refresh_token": token}
+            CLIENT_SECRETS.update(refresh_token)
+            print(CLIENT_SECRETS)
+            return f"Dev Mode: Successfully updated refresh token to {token}\nYou will need to update if the bot is restarted.\n"
+        except Exception as e: return f"Ran into {e.__class__.__name__} Exception: {e}"
+
     message = None
     with open('credentials.json') as f:
         cred = json.load(f)
@@ -100,21 +132,25 @@ def refresh_token():
     print(message)
     return message
 
-def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS_FILE):
-    credential_path = os.path.join('./', 'credentials.json')
-    store = Storage(credential_path)
-    credentials = store.get()
-    if not credentials or credentials.invalid:
-        flow = client.flow_from_clientsecrets(CLIENT_SECRETS_FILE, SCOPES)
-        credentials = tools.run_flow(flow, store)
-    return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+
+def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS):
+    if DEV_MODE:
+        credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
+        return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    else:
+        credential_path = os.path.join('./', 'credentials.json')
+        store = Storage(credential_path)
+        credentials = store.get()
+        if not credentials or credentials.invalid:
+            flow = client.flow_from_clientsecrets(CLIENT_SECRETS_FILE, SCOPES)
+            credentials = tools.run_flow(flow, store)
+        return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
 
 def execute_api_request(client_library_function, **kwargs):
-    refresh_token()
     return client_library_function(**kwargs).execute()
 
-async def refresh():
-    return refresh_token()
+async def refresh(token=None):
+    return refresh_token(token)
 
 async def update_dates(startDate, endDate):
     print(f'Received start date: {startDate} and end date: {endDate}')
@@ -480,11 +516,11 @@ async def get_operating_stats(results = 10, start=datetime.datetime.now().strfti
         return f"Ran into {e.__class__.__name__} exception, please check the logs."
     
 if __name__ == "__main__":
-    
-    # Attempt token refresh at the start of the program
-    try: refresh_token()
-    except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
-    except Exception as e: print(e.__class__.__name__, e)
+    if not DEV_MODE:
+        # Attempt token refresh at the start of the program
+        try: refresh_token()
+        except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
+        except Exception as e: print(e.__class__.__name__, e)
 
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
@@ -659,9 +695,21 @@ if __name__ == "__main__":
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Refresh Token
     @bot.command(aliases=['refresh', 'refresh_token', 'refreshToken'])
-    async def refresh_API_token(ctx):
+    async def refresh_API_token(ctx, token=None):
         try:
-            status = await refresh()
+            status = await refresh(token)
+            print(status)
+            await ctx.send(status)
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
+    # Swap Dev Mode
+    @bot.command(aliases=['switch', 'devToggle'])
+    async def sw_dev(ctx):
+        try:
+            status = f'Dev mode is now: {DEV_MODE}\nCall the command again to switch.\n'
+            await dev_mode()
+            status += f'\nDev mode is now: {DEV_MODE}'
             print(status)
             await ctx.send(status)
         except Exception as e:
@@ -730,6 +778,7 @@ if __name__ == "__main__":
             "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\nExample: !os 01/01 12/1 5\n\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
             "!refresh - Refresh the API token!!\n",
+            "!switch - (Temp) Toggle between dev and user mode\n"
             "!restart - Restart the bot",
             "!help\t!ping"
         ]
