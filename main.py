@@ -100,7 +100,7 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
     except: pass
     try:
         credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
-        json_path = 'Analytics-Service.json' if API_SERVICE_NAME == 'youtubeAnalytics' else 'YouTube-Data-API.json'
+        json_path = 'API_Service/Analytics-Service.json' if API_SERVICE_NAME == 'youtubeAnalytics' else 'API_Service/YouTube-Data-API.json'
         print(f'Building failed (This is expected behavior on replit.com), trying to build from document: {json_path}')
         with open(json_path) as f:
             service = json.load(f)
