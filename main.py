@@ -36,20 +36,20 @@ from calendar                       import monthrange
 from dotenv                         import load_dotenv
 from time                           import sleep
 
-import google, google_auth_oauthlib, googleapiclient.errors
 import discord
+import google, google_auth_oauthlib, googleapiclient.errors
+
 
 from oauth2client.client            import HttpAccessTokenRefreshError
 from google_auth_oauthlib.flow      import InstalledAppFlow
 from google.auth.exceptions         import RefreshError, GoogleAuthError
-from googleapiclient.discovery      import build
+from googleapiclient.discovery      import build, build_from_document
 from oauth2client.file              import Storage
 from discord.ext                    import commands, tasks
 from oauth2client                   import client, tools
 from google.oauth2.credentials      import Credentials
 
 load_dotenv()
-
 
 if not os.environ["DISCORD_TOKEN"]:
     raise Exception("DISCORD_TOKEN is missing within .env file, please add it and try again.")
@@ -66,7 +66,7 @@ YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 
 # Whether to use keep_alive.py
 if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
-    from keep_alive                     import keep_alive
+    from keep_alive                 import keep_alive
     keep_alive()
 
 DEV_MODE = (os.environ.get("DEV_MODE", "False").lower() == "true")
@@ -82,6 +82,32 @@ else:
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
+
+def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES):
+    try:
+        if DEV_MODE:
+            credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
+            return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    except: pass
+    try:
+        credential_path = os.path.join('./', 'credentials.json')
+        store = Storage(credential_path)
+        credentials = store.get()
+        if not credentials or credentials.invalid:
+            flow = client.flow_from_clientsecrets(CLIENT_SECRETS, SCOPES)
+            credentials = tools.run_flow(flow, store)
+        return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
+    except: pass
+    try:
+        credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
+        json_path = 'Analytics-Service.json' if API_SERVICE_NAME == 'Analytics-Service' else 'YouTube-Data-API.json'
+        print(f'Building failed (This is expected behavior on replit.com), trying to build from document: {json_path}')
+        with open(json_path) as f:
+            service = json.load(f)
+        return build_from_document(service, credentials = credentials)
+    except Exception as e:
+        print(f'Failed to get service: {e} {traceback.format_exc()}')
+        raise
 
 async def dev_mode():
     global DEV_MODE, CLIENT_SECRETS
@@ -134,20 +160,6 @@ def refresh_token(token=None):
     print(message)
     return message
 
-
-def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES, CLIENT_SECRETS_FILE=CLIENT_SECRETS):
-    if DEV_MODE:
-        credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
-        return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    else:
-        credential_path = os.path.join('./', 'credentials.json')
-        store = Storage(credential_path)
-        credentials = store.get()
-        if not credentials or credentials.invalid:
-            flow = client.flow_from_clientsecrets(CLIENT_SECRETS_FILE, SCOPES)
-            credentials = tools.run_flow(flow, store)
-        return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
 
@@ -195,15 +207,13 @@ async def update_dates(startDate, endDate):
 
 async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-
         # Query the YouTube Analytics API
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             ids='channel==MINE',
             startDate=start,
             endDate=end,
-            metrics='views,estimatedMinutesWatched,subscribersGained,subscribersLost,estimatedRevenue,cpm,monetizedPlaybacks,playbackBasedCpm,adImpressions',
+            metrics='views,estimatedMinutesWatched,subscribersGained,subscribersLost,estimatedRevenue,cpm,monetizedPlaybacks,playbackBasedCpm,adImpressions,likes,dislikes,averageViewDuration,shares,averageViewPercentage,subscribersGained,subscribersLost',
         )
 
         # Retrieve the data from the response
@@ -215,13 +225,21 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
         monetizedPlaybacks = response['rows'][0][6]
         playbackCpm = response['rows'][0][7]
         adImpressions = response['rows'][0][8]
+        likes = response['rows'][0][9]
+        dislikes = response['rows'][0][10]
+        averageViewDuration = response['rows'][0][11]
+        shares = response['rows'][0][12]
+        averageViewPercentage = response['rows'][0][13]
+        subscribersGained = response['rows'][0][14]
+        subscribersLost = response['rows'][0][15]
+        netSubscribers = subscribersGained - subscribersLost
 
         # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         # Build the response string
         response_str = f'YouTube Analytics Report ({start}\t-\t{end})\n\n'
-        response_str += f'Views:\t{round(views,2):,}\nMinutes Watched:\t{round(minutes,2):,}\nSubscribers Gained:\t{round(subscribersGained,2):,}\n\n'
+        response_str += f'Views:\t{round(views,2):,}\nRatings:\t{100*round(likes/(likes + dislikes),2):,}%\nMinutes Watched:\t{round(minutes,2):,}\nAverage View Duration:\t{round(averageViewDuration,2):,}s ({round(averageViewPercentage,2):,}%)\nNet Subscribers:\t{round(netSubscribers,2):,}\nShares:\t{round(shares,2):,}\n\n'
         response_str += f'Estimated Revenue:\t${round(revenue,2):,}\nCPM:\t${round(cpm,2):,}\nMonetized Playbacks (±2.0%):\t{round(monetizedPlaybacks,2):,}\nPlayback CPM:\t${round(playbackCpm,2):,}\nAd Impressions:\t{round(adImpressions,2):,}'
         print(response_str + '\nSending to Discord...')
         return response_str
@@ -230,16 +248,14 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
 async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-
         # Query the YouTube Analytics API
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             ids='channel==MINE',
             startDate=start,
             endDate=end,
@@ -256,10 +272,10 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
             video_ids.append(data[0])
             earnings.append(data[1])
 
-        youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
+        #youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
         # Query the YouTube Data API
-        request = youtube.videos().list(
+        request = YOUTUBE_DATA.videos().list(
             part="snippet",
             id=','.join(video_ids)
         )
@@ -283,16 +299,14 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
 async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
-        youtubeAnalytics = get_service()
-
         # Query the YouTube Analytics API
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             ids='channel==MINE',
             startDate=startDate,
             endDate=endDate,
@@ -318,15 +332,13 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
 async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             ids='channel==MINE',
             startDate=start,
             endDate=end,
@@ -351,15 +363,14 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 # More detailed geo data/report
 async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
-        youtubeAnalytics = get_service()
         # Get top preforming countries by revenue
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             ids='channel==MINE',
             startDate=startDate,
             endDate=endDate,
@@ -390,14 +401,13 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
-        youtubeAnalytics = get_service()
         # Get top preforming countries by revenue
         response = execute_api_request(
-            youtubeAnalytics.reports().query,
+            YOUTUBE_ANALYTICS.reports().query,
             dimensions="ageGroup,gender",
             ids='channel==MINE',
             startDate=startDate,
@@ -425,12 +435,11 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-        request = youtubeAnalytics.reports().query(
+        request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="sharingService",
             startDate=start,
             endDate=end,
@@ -454,12 +463,11 @@ async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 async def get_traffic_source(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-        request = youtubeAnalytics.reports().query(
+        request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="insightTrafficSourceDetail",
             endDate=end,
             filters="insightTrafficSourceType==YT_SEARCH",
@@ -485,39 +493,92 @@ async def get_traffic_source(results=10, start=datetime.datetime.now().strftime(
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
 async def get_operating_stats(results = 10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
-        youtubeAnalytics = get_service()
-        request = youtubeAnalytics.reports().query(
+        request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="operatingSystem",
             endDate=end,
-            #filters="deviceType==MOBILE",
             maxResults=results,
             ids="channel==MINE",
             metrics="views,estimatedMinutesWatched",
-            sort="-views",
+            sort="-views,estimatedMinutesWatched",
             startDate=start
         ).execute()
-        print(request)
         # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
         start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
             '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
         response_str = f'Top Operating System ({start_str}\t-\t{end_str})\n'
         # {round(row[i],2):,}
         for row in request['rows']:
-            response_str += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[1],2):,}\n'
+            response_str += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[2],2):,}\n'
+        print(response_str)
         return response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
-        return f"Ran into {e.__class__.__name__} exception, please check the logs."
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
     
+async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+    try:
+        request = YOUTUBE_ANALYTICS.reports().query(
+            dimensions="playlist",
+            endDate=end,
+            filters="isCurated==1",
+            ids="channel==MINE",
+            maxResults=results,
+            metrics="estimatedMinutesWatched,views,playlistStarts,averageTimeInPlaylist",
+            sort="-views",
+            startDate=start
+        )
+        response = request.execute()
+
+        # Assuming the JSON data is stored in a variable called 'json_data'
+        playlist_ids = ','.join([row[0] for row in response['rows']])
+
+        playlist_ids = []
+        views = []
+        playlist_starts = []
+        average_time_in_playlist = []
+        estimated_minutes_watched = []
+        for row in response['rows']:
+            playlist_ids.append(row[0])
+            views.append(row[1])
+            playlist_starts.append(row[2])
+            average_time_in_playlist.append(row[3])
+            estimated_minutes_watched.append(row[4])
+
+        request = YOUTUBE_DATA.playlists().list(
+            part="snippet",
+            id=playlist_ids
+        )
+        response = request.execute()
+        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
+        start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+
+        response_str = f'```YouTube Analytics Report ({start}\t-\t{end})\n\n'
+
+        for row in response['items']:
+            response_str += f"{row['snippet']['title']}:\nViews: {views[playlist_ids.index(row['id'])]}\nPlaylist Starts: {playlist_starts[playlist_ids.index(row['id'])]}\nAverage Time Spent in Playlist: {average_time_in_playlist[playlist_ids.index(row['id'])]}\nEstimated Minutes Watched: {estimated_minutes_watched[playlist_ids.index(row['id'])]}\n\n"
+
+        response_str += '```'
+        print('Playlist Report Generated:\n', response_str)
+        return response_str
+    
+    except HttpAccessTokenRefreshError: 
+        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except Exception as e:
+        print(traceback.format_exc())
+        return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
+
 if __name__ == "__main__":
+    YOUTUBE_ANALYTICS = get_service()
+    YOUTUBE_DATA = get_service("youtube", "v3", YOUTUBE_API_KEY)
+
     if not DEV_MODE:
         # Attempt token refresh at the start of the program
         try: refresh_token()
@@ -695,6 +756,17 @@ if __name__ == "__main__":
             print(f'\n{startDate} - {endDate} operating systems result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
+    # Playlist Report
+    @bot.command(aliases=['playlist', 'playlist_report', 'playlistReport'])
+    async def playlist_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
+        startDate, endDate = await update_dates(startDate, endDate)
+        try:
+            await ctx.send(await get_playlist_stats(results, startDate, endDate))
+            print(f'\n{startDate} - {endDate} playlist stats result sent')
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
     # Refresh Token
     @bot.command(aliases=['refresh', 'refresh_token', 'refreshToken'])
     async def refresh_API_token(ctx, token=None):
@@ -749,6 +821,9 @@ if __name__ == "__main__":
             # Get top operating systems
             top_os = await get_operating_stats(10, startDate, endDate)
 
+            # Get Playlist Report
+            playlist_report = await get_playlist_stats(startDate, endDate)
+
             # Send everything
             await ctx.send(stats + '\n\n.')
             await ctx.send(top_rev + '\n\n.')
@@ -778,6 +853,7 @@ if __name__ == "__main__":
             "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\nExample: !shares 01/01 12/1 5\n\n",
             "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\nExample: !search 01/01 12/1 5\n\n",
             "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\nExample: !os 01/01 12/1 5\n\n",
+            "!playlist [startDate] [endDate] [# of results to return (Default: 5)] - Return playlist stats\nExample: !playlist 01/01 12/1\n\n",
             "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
             "!refresh - Refresh the API token!!\n",
             "!switch - (Temp) Toggle between dev and user mode\n"
@@ -796,7 +872,7 @@ if __name__ == "__main__":
     async def restart(ctx):
         print("Restarting...")
         print()
-        await ctx.send("Restarting...")
+        await ctx.send("Restarting...\nNote: This does not work on Replit (unless you use a paid plan).)")
         await bot.close()
         os._exit(0)
 

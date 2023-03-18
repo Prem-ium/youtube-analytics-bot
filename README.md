@@ -62,6 +62,10 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 ```sh
    !os [startDate] [endDate] [Length to Return]
 ```
+- Retrieve your Playlist Report
+```sh
+   !playlist [startDate] [endDate] [Length to Return]
+```
 - Return everything. Call every method and output all available data ♾️
 ```sh
    !everything [startDate] [endDate]
@@ -87,10 +91,10 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 - Developer Mode
 - Analytical Reports delivering information on estimated revenue, cpm, & more
 - Refresh Token Ability
+- Replit Support (Dev mode -> Build from Document)
 
 
 #### TODO:
-- Replit Support (Get working program without credentials.json or CLIENT_SECRET.json files in directory)
 - Google & YouTube Keyword SEO Research Command
 - Major Refactor Discord Commands
 
