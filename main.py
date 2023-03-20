@@ -580,7 +580,7 @@ if __name__ == "__main__":
     YOUTUBE_DATA = get_service("youtube", "v3", YOUTUBE_API_KEY)
 
     if not DEV_MODE:
-        # Attempt token refresh at the start of the program
+        # Attempt token refresh at the start of the program, if not in dev mode
         try: refresh_token()
         except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
         except Exception as e: print(e.__class__.__name__, e)
