@@ -84,6 +84,7 @@ SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 
 def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES):
+    global DEV_MODE, CLIENT_SECRETS
     try:
         if DEV_MODE:
             credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
@@ -116,48 +117,78 @@ async def dev_mode():
         print(f'Development mode is enabled, using CLIENT_SECRET JSON Dict from .env file!! (Not JSON file)\n\nRemember to adjust your CLIENT_SECRET JSON Dict within .env to include refresh token.\nCheck .env.example for an example.\n\n')
         try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
         except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
+        
     else:
         CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
 def refresh_token(token=None):
+    global DEV_MODE
     if DEV_MODE:
-        if token is None:   return f"Dev Mode is enabled, please provide a refresh token to update to.\n"
-        try:
-            print(CLIENT_SECRETS)
-            refresh_token = {"refresh_token": token}
-            CLIENT_SECRETS.update(refresh_token)
-            print(CLIENT_SECRETS)
-            return f"Dev Mode: Successfully updated refresh token to {token}\nYou will need to update if the bot is restarted.\n"
-        except Exception as e: return f"Ran into {e.__class__.__name__} Exception: {e}"
+        global CLIENT_SECRETS
+        global YOUTUBE_ANALYTICS
+        global YOUTUBE_DATA
 
-    message = None
-    with open('credentials.json') as f:
-        cred = json.load(f)
+        if token is not None:
+            try:
+                refresh_token = {"refresh_token": token}
+                CLIENT_SECRETS.update(refresh_token)
+                return f"Dev Mode: Successfully updated refresh token to {token}\nYou will need to update if the bot is restarted.\n"
+            except Exception as e: return f"Ran into {e.__class__.__name__} Exception: {e}"
+
         data = {
-            'client_id': cred['client_id'],
-            'client_secret': cred['client_secret'],
-            'refresh_token': cred['refresh_token'],
+            'client_id': CLIENT_SECRETS['client_id'],
+            'client_secret': CLIENT_SECRETS['client_secret'],
+            'refresh_token': CLIENT_SECRETS['refresh_token'],
             'grant_type': 'refresh_token'
         }
-
         response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
         if response.status_code == 200:
             response_json = response.json()
-        
+            #print(response_json)
             # Update token_response with new access token and expiry time
-            cred['token_response']['access_token'] = response_json['access_token']
-            cred['token_response']['expires_in'] = response_json['expires_in']
-            
+            CLIENT_SECRETS['access_token'] = response_json['access_token']
+            CLIENT_SECRETS['expires_in'] = response_json['expires_in']
+
+
             # Calculate and update token expiry time
             now = datetime.datetime.now()
-            cred['token_expiry'] = (now + datetime.timedelta(seconds=response_json['expires_in'])).isoformat()
+            CLIENT_SECRETS['token_expiry'] = (now + datetime.timedelta(seconds=response_json['expires_in'])).isoformat()
+
             message = f"{response.status_code}:\tSuccessfully refreshed token\n{datetime.datetime.now()}\n"
-            # Save updated credentials to file
-            with open('credentials.json', 'w') as f:
-                json.dump(cred, f)
+            YOUTUBE_ANALYTICS = get_service()
+            YOUTUBE_DATA = get_service('youtube', 'v3', SCOPES)
         else:
             message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
-    print(message)
+        #print(message)
+        # if token is None:   return f"Dev Mode is enabled, please provide a refresh token to update to.\n"
+    else:
+        message = None
+        with open('credentials.json') as f:
+            cred = json.load(f)
+            data = {
+                'client_id': cred['client_id'],
+                'client_secret': cred['client_secret'],
+                'refresh_token': cred['refresh_token'],
+                'grant_type': 'refresh_token'
+            }
+
+            response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
+            if response.status_code == 200:
+                response_json = response.json()
+            
+                # Update token_response with new access token and expiry time
+                cred['token_response']['access_token'] = response_json['access_token']
+                cred['token_response']['expires_in'] = response_json['expires_in']
+                
+                # Calculate and update token expiry time
+                now = datetime.datetime.now()
+                cred['token_expiry'] = (now + datetime.timedelta(seconds=response_json['expires_in'])).isoformat()
+                message = f"{response.status_code}:\tSuccessfully refreshed token\n{datetime.datetime.now()}\n"
+                # Save updated credentials to file
+                with open('credentials.json', 'w') as f:
+                    json.dump(cred, f)
+            else:
+                message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
     return message
 
 def execute_api_request(client_library_function, **kwargs):
@@ -579,11 +610,10 @@ if __name__ == "__main__":
     YOUTUBE_ANALYTICS = get_service()
     YOUTUBE_DATA = get_service("youtube", "v3", YOUTUBE_API_KEY)
 
-    if not DEV_MODE:
-        # Attempt token refresh at the start of the program, if not in dev mode
-        try: refresh_token()
-        except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
-        except Exception as e: print(e.__class__.__name__, e)
+    # Attempt token refresh at the start of the program
+    try: refresh_token()
+    except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
+    except Exception as e: print(e.__class__.__name__, e)
 
     # Set the intents for the bot
     discord_intents = discord.Intents.all()
