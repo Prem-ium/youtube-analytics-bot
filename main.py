@@ -189,7 +189,10 @@ def refresh_token(token=None):
                     json.dump(cred, f)
             else:
                 message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
-    return message
+            
+    embed = discord.Embed(title=f"YouTube Analytics Bot Refresh", color=0x00ff00)
+    embed.add_field(name="Status", value=message, inline=False)
+    return embed
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
@@ -268,12 +271,32 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
         # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
+        # create a Discord Embed object
+        embed = discord.Embed(title=f"YouTube Analytics Report ({start} - {end})", color=0x00ff00)
+
+        # add fields to the embed
+        embed.add_field(name="Views", value=f"{round(views,2):,}", inline=True)
+        embed.add_field(name="Ratings", value=f"{100*round(likes/(likes + dislikes),2):,}%", inline=True)
+        embed.add_field(name="Minutes Watched", value=f"{round(minutes,2):,}", inline=True)
+        embed.add_field(name="Average View Duration", value=f"{round(averageViewDuration,2):,}s ({round(averageViewPercentage,2):,}%)", inline=True)
+        embed.add_field(name="Net Subscribers", value=f"{round(netSubscribers,2):,}", inline=True)
+        embed.add_field(name="Shares", value=f"{round(shares,2):,}", inline=True)
+        
+        embed.add_field(name="\u200b", value="\u200b", inline=False)
+
+        embed.add_field(name="Estimated Revenue", value=f"${round(revenue,2):,}", inline=True)
+        embed.add_field(name="CPM", value=f"${round(cpm,2):,}", inline=True)
+        embed.add_field(name="Monetized Playbacks (±2.0%)", value=f"{round(monetizedPlaybacks,2):,}", inline=True)
+        embed.add_field(name="Playback CPM", value=f"${round(playbackCpm,2):,}", inline=True)
+        embed.add_field(name="Ad Impressions", value=f"{round(adImpressions,2):,}", inline=True)
+
         # Build the response string
         response_str = f'YouTube Analytics Report ({start}\t-\t{end})\n\n'
         response_str += f'Views:\t{round(views,2):,}\nRatings:\t{100*round(likes/(likes + dislikes),2):,}%\nMinutes Watched:\t{round(minutes,2):,}\nAverage View Duration:\t{round(averageViewDuration,2):,}s ({round(averageViewPercentage,2):,}%)\nNet Subscribers:\t{round(netSubscribers,2):,}\nShares:\t{round(shares,2):,}\n\n'
         response_str += f'Estimated Revenue:\t${round(revenue,2):,}\nCPM:\t${round(cpm,2):,}\nMonetized Playbacks (±2.0%):\t{round(monetizedPlaybacks,2):,}\nPlayback CPM:\t${round(playbackCpm,2):,}\nAd Impressions:\t{round(adImpressions,2):,}'
         print(response_str + '\nSending to Discord...')
-        return response_str
+
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -315,6 +338,27 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         # Format the start and end dates
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
+        # create a Discord Embed object
+        embed = discord.Embed(title=f"Top {results} Earning Videos ({start} - {end})", color=0x00ff00)
+
+        # add fields to the embed
+        total = 0
+        for i in range(len(response['items'])):
+            embed.add_field(name=f"{i + 1}) {response['items'][i]['snippet']['title']}:\t${round(earnings[i], 2):,}", value=f"------------------------------------------------------------------------------------", inline=False)
+            total += earnings[i]
+        embed.add_field(name="\u200b", value="\u200b", inline=False)
+        embed.add_field(name=f"Top {results} Total Earnings", value=f"${round(total, 2):,}", inline=False)
+
+
+
+
+
+
+
+
+
+
+
         # Build the response string
         response_str = f'Top {results} Earning Videos ({start}\t-\t{end}):\n\n'
         total = 0
@@ -324,7 +368,7 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         response_str += f'\n\nTop {results} Total Earnings: ${round(total, 2):,}'
         print(response_str)
 
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -649,8 +693,14 @@ if __name__ == "__main__":
         try:
             # Get the stats for the specified date range
             stats = await get_stats(startDate, endDate)        
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:
+                # Send the stats to the user
+                await ctx.send(embed=stats[0])
+            except:
+                pass
+            finally:
+                await ctx.send(stats[1])
+            
             # Print a message to the console indicating that the stats were sent
             print(f'\n{startDate} - {endDate} stats sent')
         except Exception as e:
@@ -707,10 +757,16 @@ if __name__ == "__main__":
     async def top(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            rev = await top_revenue(results, startDate, endDate)
-            # Send the stats to the user
-            await ctx.send(rev)
-            print(f'\n{startDate} - {endDate} top {results} sent')
+            # Get the stats for the specified date range
+            rev = await top_revenue(results, startDate, endDate)      
+            try:
+                # Send the stats to the user
+                await ctx.send(embed=rev[0])
+            except:
+                pass
+            finally:
+                await ctx.send(rev[1])
+                print(f'\n{startDate} - {endDate} top {results} sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
@@ -803,7 +859,7 @@ if __name__ == "__main__":
         try:
             status = await refresh(token)
             print(status)
-            await ctx.send(status)
+            await ctx.send(embed=status)
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
@@ -811,10 +867,15 @@ if __name__ == "__main__":
     @bot.command(aliases=['switch', 'devToggle'])
     async def sw_dev(ctx):
         try:
+                   
+            embed = discord.Embed(title=f"Switch Dev Mode", color=0x00ff00)
             status = f'Dev mode is now: {DEV_MODE}\nCall the command again to switch.\n'
+            embed.add_field(name="Previous Dev Status:", value=DEV_MODE, inline=False)
             await dev_mode()
             status += f'\nDev mode is now: {DEV_MODE}'
+            embed.add_field(name="Updated Dev Status:", value=DEV_MODE, inline=False)
             print(status)
+            await ctx.send(embed=embed)
             await ctx.send(status)
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -864,6 +925,7 @@ if __name__ == "__main__":
             await ctx.send(shares + '\n\n.')
             await ctx.send(search_terms + '\n\n.')
             await ctx.send(top_os + '\n\n.')
+            await ctx.send(playlist_report + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
