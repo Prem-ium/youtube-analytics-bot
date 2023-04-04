@@ -206,36 +206,29 @@ async def update_dates(startDate, endDate):
 
     # If the start and end dates are in the first month of the year & they are the same date
     if (splitStartDate[1] == '01' and (splitStartDate[0] == splitEndDate[0] and splitEndDate[1] in ['01', '02', '03'])):
-        # Get the year from the start date, or use the current year
         year = startDate.split('/')[2] if (len(startDate.split('/')) > 2) else datetime.datetime.now().strftime("%Y")
-        # If month is January, use the previous year
         year = str(int(year) - 1 if int(splitStartDate[0]) == 1 else year)
-        # Use the full 4-digit year
         year = f'20{year}' if len(year) == 2 else year
-        # Get the previous month
+
         previousMonth = int(splitStartDate[0]) - 1 if int(splitStartDate[0]) > 1 else 12
-        # Get the last day of the previous month
         lastDay = monthrange(int(year), previousMonth)[1]
+
         # Set the start and end dates to the previous month
         startDate = datetime.datetime.strptime(f'{previousMonth}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(f'{previousMonth}/{lastDay}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+
     # If the start or end date is missing the year
     elif len(startDate) != 5 or len(endDate) != 5:
         # Set the start and end dates to the full date including the year
         startDate = datetime.datetime.strptime(startDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
         endDate = datetime.datetime.strptime(endDate, '%m/%d/%y').strftime('%Y/%m/%d').replace('/', '-')
     else:
-        # Get the current year
         currentYear = datetime.datetime.now().strftime("%Y")
-        # If the start date is missing the year
         if len(startDate) == 5:
-            # Set the start date to the full date including the year
             startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
-        # If the end date is missing the year
         if len(endDate) == 5:
-            # Set the end date to the full date including the year
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
-    # Print a message indicating the updated dates
+
     print(f'Updated dates to {startDate} - {endDate}')
     return startDate, endDate
 
@@ -341,23 +334,12 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         # create a Discord Embed object
         embed = discord.Embed(title=f"Top {results} Earning Videos ({start} - {end})", color=0x00ff00)
 
-        # add fields to the embed
         total = 0
         for i in range(len(response['items'])):
             embed.add_field(name=f"{i + 1}) {response['items'][i]['snippet']['title']}:\t${round(earnings[i], 2):,}", value=f"------------------------------------------------------------------------------------", inline=False)
             total += earnings[i]
         embed.add_field(name="\u200b", value="\u200b", inline=False)
         embed.add_field(name=f"Top {results} Total Earnings", value=f"${round(total, 2):,}", inline=False)
-
-
-
-
-
-
-
-
-
-
 
         # Build the response string
         response_str = f'Top {results} Earning Videos ({start}\t-\t{end}):\n\n'
@@ -397,11 +379,16 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
 
         # Build the response string
         return_str = f'Top {results} Countries by Revenue: ({startDate}\t-\t{endDate})\n'
+
+        embed = discord.Embed(title=f"Top {results} Countries by Revenue: ({startDate} - {endDate})", color=0x00ff00)
         for row in response['rows']:
+            embed.add_field(name=f"{row[0]}:\t\t${round(row[1],2):,}", value=f"${round(row[1],2):,}", inline=False)
             return_str += f'{row[0]}:\t\t${round(row[1],2):,}\n'
             print(row[0], row[1])
+        
+        embed.add_field(name="\u200b", value="\u200b", inline=False)
 
-        return return_str
+        return embed, return_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -427,12 +414,13 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
         end_str = (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         response_str = f'Ad Preformance ({start_str}\t-\t{end_str})\n\n'
-
+        embed = discord.Embed(title=f"Ad Preformance ({start_str} - {end_str})", color=0x00ff00)
         # Parse the response into nice formatted string
         for row in response['rows']:
+            embed.add_field(name=f"{row[0]}:\t\t${round(row[1],2):,}", value=f"Gross Revenue:\t${round(row[1],2):,}\tCPM:\t${round(row[3],2):,}\tImpressions:\t{round(row[2],2):,}", inline=False)
             response_str += f'Ad Type:\t{row[0]}\n\tGross Revenue:\t${round(row[1],2):,}\tCPM:\t${round(row[3],2):,}\tImpressions:\t{round(row[2],2):,}\n\n\n'
 
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -457,20 +445,21 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
 
         # Parse the response using rows and columnHeaders
         response_str = f'Top {results} Countries by Revenue: ({startDate} - {endDate})\n\n'
+        embed = discord.Embed(title=f"Top {results} Countries by Revenue: ({startDate} - {endDate})", color=0x00ff00)
         for row in response['rows']:
             response_str += f'{row[0]}:\n'
             for i in range(len(row)):
                 if "country" in response["columnHeaders"][i]["name"]:
                     continue
                 response_str += f'\t{response["columnHeaders"][i]["name"]}:\t{round(row[i],2):,}\n'
-                
-                if len(response_str) > 1500:
-                    return response_str
+                embed.add_field(name=f"{response['columnHeaders'][i]['name']}:", value=f"{round(row[i],2):,}", inline=False)
+                #if len(response_str) > 1500:
+                 #   return response_str
 
             response_str += '\n'
 
         print(f'Data received:\t{response}\n\nReport Generated:\n{response_str}')
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -495,6 +484,7 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
         startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
             '-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
         response_str = f'Gender Viewership Demographics ({startDate}\t-\t{endDate})\n\n'
+        embed = discord.Embed(title=f"Gender Viewership Demographics ({startDate}\t-\t{endDate})", color=0x00ff00)
 
         # Parse the response into nice formatted string
         for row in response['rows']:
@@ -503,8 +493,9 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
             row[0] = row[0].split('e')
 
             response_str += f'{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}\n'
+            embed.add_field(name=f"{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}", value=f"{round(row[2],2)}%", inline=False)
         print(f'Demographics Report Generated & Sent:\n{response_str}')
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -528,11 +519,13 @@ async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-
         start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         response_str = f'Top Sharing Services ({start_str}\t-\t{end_str})\n\n'
+        embed = discord.Embed(title=f"Top Sharing Services ({start_str}\t-\t{end_str})", color=0x00ff00)
         # Parse the response into nice formatted string
         for row in request['rows']:
             response_str += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+            embed.add_field(name=f'{row[0].replace("_", " ")}:', value=f"{row[1]:,}", inline=False)
         print(f'Shares Report Generated & Sent:\n{response_str}')
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -557,12 +550,14 @@ async def get_traffic_source(results=10, start=datetime.datetime.now().strftime(
         start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         response_str = f'Top Search Traffic Terms ({start_str}\t-\t{end_str})\n\n'
+        embed = discord.Embed(title=f"Top Search Traffic Terms ({start_str}\t-\t{end_str})", color=0x00ff00)
         # Parse the response into nice formatted string
         for row in request['rows']:
             response_str += f'{row[0].replace("_", " ")}:\t{row[1]:,}\n'
+            embed.add_field(name=f'{row[0].replace("_", " ")}:', value=f"{row[1]:,}", inline=False)
         print(f'Traffic Report Generated:\n{response_str}')
 
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -586,11 +581,13 @@ async def get_operating_stats(results = 10, start=datetime.datetime.now().strfti
         start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
             '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
         response_str = f'Top Operating System ({start_str}\t-\t{end_str})\n'
+        embed = discord.Embed(title=f"Top Operating System ({start_str}\t-\t{end_str})", color=0x00ff00)
         # {round(row[i],2):,}
         for row in request['rows']:
             response_str += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[2],2):,}\n'
+            embed.add_field(name=f'{row[0]}:', value=f"Views:\t\t{round(row[1], 2):,}\nEstimated Watchtime:\t\t{round(row[2],2):,}", inline=False)
         print(response_str)
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -636,13 +633,13 @@ async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
 
         response_str = f'```YouTube Analytics Report ({start}\t-\t{end})\n\n'
-
+        embed = discord.Embed(title=f"Top Operating System ({start}\t-\t{end})", color=0x00ff00)
         for row in response['items']:
             response_str += f"{row['snippet']['title']}:\nViews: {views[playlist_ids.index(row['id'])]}\nPlaylist Starts: {playlist_starts[playlist_ids.index(row['id'])]}\nAverage Time Spent in Playlist: {average_time_in_playlist[playlist_ids.index(row['id'])]}\nEstimated Minutes Watched: {estimated_minutes_watched[playlist_ids.index(row['id'])]}\n\n"
-
+            embed.add_field(name=f'{row["snippet"]["title"]}:', value=f"Views: {views[playlist_ids.index(row['id'])]}\nPlaylist Starts: {playlist_starts[playlist_ids.index(row['id'])]}\nAverage Time Spent in Playlist: {average_time_in_playlist[playlist_ids.index(row['id'])]}\nEstimated Minutes Watched: {estimated_minutes_watched[playlist_ids.index(row['id'])]}", inline=False)
         response_str += '```'
         print('Playlist Report Generated:\n', response_str)
-        return response_str
+        return embed, response_str
     
     except HttpAccessTokenRefreshError: 
         return "The credentials have been revoked or expired, please re-run the application to re-authorize."
@@ -659,31 +656,25 @@ if __name__ == "__main__":
     except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
     except Exception as e: print(e.__class__.__name__, e)
 
-    # Set the intents for the bot
+    try:    CHANNEL_ID = YOUTUBE_DATA.channels().list(part="id",mine=True).execute()['items'][0]['id']
+    except: print(traceback.format_exc())
+
     discord_intents = discord.Intents.all()
-    # Create the bot with the specified command prefix and intents
     bot = commands.Bot(command_prefix='!', intents=discord_intents)
-    # Remove the default 'help' command
     bot.remove_command('help')
 
-    # Bot event when bot is ready
     if DISCORD_CHANNEL:
-        # Define the event handler
         @bot.event
         async def on_ready():
-            # Get the specified channel
             channel = bot.get_channel(DISCORD_CHANNEL)
-            # Send a message to the channel indicating that the bot is ready
             await channel.send('YouTube Analytics Bot is ready!')
 
     # Bot ping-pong command
     @bot.command(name='ping')
     async def ping(ctx):
-        # Send a 'pong' message to the user
+        # Send a 'pong' message to the user & print user and time to console
         await ctx.send('pong')
-        # Print a message to the console indicating that the user got ponged
-        print(
-            f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
+        print(f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     # Retrieve Analytic stats within specified date range, defaults to current month
     @bot.command(aliases=['stats', 'thisMonth', 'this_month'])
@@ -693,27 +684,27 @@ if __name__ == "__main__":
         try:
             # Get the stats for the specified date range
             stats = await get_stats(startDate, endDate)        
-            try:
-                # Send the stats to the user
-                await ctx.send(embed=stats[0])
-            except:
-                pass
-            finally:
-                await ctx.send(stats[1])
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             
             # Print a message to the console indicating that the stats were sent
             print(f'\n{startDate} - {endDate} stats sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
     # Lifetime stats
     @bot.command(aliases=['lifetime', 'alltime', 'allTime'])
     async def lifetime_method(ctx):
         try:
             stats = await get_stats('2005-02-14', datetime.datetime.now().strftime("%Y-%m-%d"))
-            await ctx.send(stats)
-            print('\nLifetime stats sent\n')
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
+    # Last month's stats
     @bot.command(aliases=['lastMonth'])
     async def lastmonthct(ctx):
         # Get the last month's start and end dates
@@ -723,8 +714,9 @@ if __name__ == "__main__":
         endDate = endDate.replace(day=calendar.monthrange(endDate.year, endDate.month)[1])
         try:
             stats = await get_stats(startDate.strftime("%Y-%m-%d"), endDate.strftime("%Y-%m-%d"))
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -732,22 +724,18 @@ if __name__ == "__main__":
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
     @bot.command(aliases=['getMonth', 'get_month'])
     async def month(ctx, period=datetime.datetime.now().strftime("%m/%Y")):
-        # Split the period into month and year
         period = period.split('/')
         month, year = period[0], period[1]
-        # Add a '20' prefix to the year if it has only two digits
         year = f'20{year}' if len(year) == 2 else year
-        # Get the last day of the month
         lastDate = monthrange(int(year), int(month))[1]
-        # Get the start and end dates in the correct format
-        startDate = datetime.datetime.strptime(
-            f'{month}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
-        endDate = datetime.datetime.strptime(
-            f'{month}/{lastDate}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+        startDate = datetime.datetime.strptime(f'{month}/01', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+        endDate = datetime.datetime.strptime(f'{month}/{lastDate}', '%m/%d').strftime(f'{year}/%m/%d').replace('/', '-')
+
         try:
             stats = await get_stats(startDate, endDate)
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -758,15 +746,11 @@ if __name__ == "__main__":
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             # Get the stats for the specified date range
-            rev = await top_revenue(results, startDate, endDate)      
-            try:
-                # Send the stats to the user
-                await ctx.send(embed=rev[0])
-            except:
-                pass
-            finally:
-                await ctx.send(rev[1])
-                print(f'\n{startDate} - {endDate} top {results} sent')
+            stats = await top_revenue(results, startDate, endDate)      
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
+            print(f'\n{startDate} - {endDate} top {results} sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
@@ -776,8 +760,9 @@ if __name__ == "__main__":
         startDate, endDate = await update_dates(startDate, endDate)        
         try:
             stats = await top_countries_by_revenue(results, startDate, endDate)
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) geo-revenue report sent\n')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -788,8 +773,9 @@ if __name__ == "__main__":
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             stats = await get_detailed_georeport(results, startDate, endDate)
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} earnings by country sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -800,8 +786,9 @@ if __name__ == "__main__":
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             stats = await get_ad_preformance(startDate, endDate)
-            # Send the stats to the user
-            await ctx.send(stats)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} ad preformance sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -811,7 +798,11 @@ if __name__ == "__main__":
     async def demo_graph(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            await ctx.send(await get_demographics(startDate, endDate))
+            stats = await get_demographics(startDate, endDate)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
+
             print(f'\n{startDate} - {endDate} demographics sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -820,25 +811,37 @@ if __name__ == "__main__":
     async def share_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            await ctx.send(await get_shares(results, startDate, endDate))
+            stats = await get_shares(results, startDate, endDate)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
+
             print(f'\n{startDate} - {endDate} shares result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+
     # Search Terms Report
     @bot.command(aliases=['search', 'search_terms', 'searchTerms', 'search_report', 'searchReport'])
     async def search_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            await ctx.send(await get_traffic_source(results, startDate, endDate))
+            stats = await get_traffic_source(results, startDate, endDate)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} search terms result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+            
     # Top Operating Systems
     @bot.command(aliases=['os', 'operating_systems', 'operatingSystems', 'topoperatingsystems'])
     async def top_os(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            await ctx.send(await get_operating_stats(results, startDate, endDate))
+            stats = await get_operating_stats(results, startDate, endDate)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} operating systems result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -848,7 +851,10 @@ if __name__ == "__main__":
     async def playlist_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
-            await ctx.send(await get_playlist_stats(results, startDate, endDate))
+            stats = await get_playlist_stats(results, startDate, endDate)
+            try:    await ctx.send(embed=stats[0])
+            except: pass
+            finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} playlist stats result sent')
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
@@ -867,7 +873,6 @@ if __name__ == "__main__":
     @bot.command(aliases=['switch', 'devToggle'])
     async def sw_dev(ctx):
         try:
-                   
             embed = discord.Embed(title=f"Switch Dev Mode", color=0x00ff00)
             status = f'Dev mode is now: {DEV_MODE}\nCall the command again to switch.\n'
             embed.add_field(name="Previous Dev Status:", value=DEV_MODE, inline=False)
@@ -887,47 +892,56 @@ if __name__ == "__main__":
         try:
             # Get statistics
             stats = await get_stats(startDate, endDate)
+            stats = stats[0]
+            await ctx.send(embed=stats)
             
             # Get top revenue
             top_rev = await top_revenue(10, startDate, endDate)
+            top_rev = top_rev[0]
+            await ctx.send(embed=top_rev)
             
             # Get top countries by revenue
             top_countries = await top_countries_by_revenue(10, startDate, endDate)
-            
+            top_countries = top_countries[0]
+            await ctx.send(embed=top_countries)
+
             # Get ad performance
             ad_performance = await get_ad_preformance(startDate, endDate)
+            ad_performance = ad_performance[0]
+            await ctx.send(embed=ad_performance)
             
             # Get detailed georeport
             georeport = await get_detailed_georeport(3, startDate, endDate)
+            georeport = georeport[0]
+            await ctx.send(embed=georeport)
             
             # Get demographics report
             demographics = await get_demographics(startDate, endDate)
+            demographics = demographics[0]
+            await ctx.send(embed=demographics)
 
             # Get shares report
             shares = await get_shares(5, startDate, endDate)
+            shares = shares[0]
+            await ctx.send(embed=shares)
 
             # Get search terms report
             search_terms = await get_traffic_source(10, startDate, endDate)
+            search_terms = search_terms[0]
+            await ctx.send(embed=search_terms)
 
             # Get top operating systems
             top_os = await get_operating_stats(10, startDate, endDate)
+            top_os = top_os[0]
+            await ctx.send(embed=top_os)
 
             # Get Playlist Report
-            playlist_report = await get_playlist_stats(startDate, endDate)
+            playlist_report = await get_playlist_stats(5, startDate, endDate)
+            playlist_report = playlist_report[0]
+            await ctx.send(embed=playlist_report)
 
-            # Send everything
-            await ctx.send(stats + '\n\n.')
-            await ctx.send(top_rev + '\n\n.')
-            await ctx.send(top_countries + '\n\n.')
-            await ctx.send(ad_performance + '\n\n.')
-            await ctx.send(georeport + '\n\n.')
-            await ctx.send(demographics + '\n\n.')
-            await ctx.send(shares + '\n\n.')
-            await ctx.send(search_terms + '\n\n.')
-            await ctx.send(top_os + '\n\n.')
-            await ctx.send(playlist_report + '\n\n.')
             print(f'\n{startDate} - {endDate} everything sent')
-        except Exception as e:
+        except Exception as e:  
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Help command
@@ -952,7 +966,16 @@ if __name__ == "__main__":
             "!restart - Restart the bot",
             "!help\t!ping"
         ]
-        
+        # Create an embed
+        embed = discord.Embed(title=f"Help: Available Commands", color=0x00ff00)
+
+        # Add each command as a field
+        for command in available_commands:
+            embed.add_field(name=f'{command.split(" ")[0]}:', value=command, inline=False)
+
+        embed.set_footer(text="Bot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
+        # Send the embed to the Discord channel
+        await ctx.send(embed=embed)
         # Use the join method to concatenate all the elements in the list
         available_commands = "\n".join(available_commands)
 
