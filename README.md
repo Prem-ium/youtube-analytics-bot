@@ -106,9 +106,15 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 2. Click on 'API & Services' and 'Enable APIs and Services'.
 3. Search and enable both 'YouTube Data' and 'YouTube Analytics' API.
 4. Return to the API & Services page and click on 'credentials'.
-5. Click Create Credentials -> OAuth Credentials -> Desktop Application -> Go through setup.
-6. Download the JSON file, name it `CLIENT_SECRET.json` and place the file inside the same folder as the program.
-7. Create Credentials -> API Key -> Copy and assign the key to the `YOUTUBE_API_KEY` environment variable.
+5. Select User Type (External) -> Configure OAuth Consent Screen -> Add YouTube Analytics related scopes:
+```
+   https://www.googleapis.com/auth/youtube.readonly
+   https://www.googleapis.com/auth/yt-analytics-monetary.readonly
+```
+6. Go through the rest of the configuration settings for OAuth
+7. Click Create Credentials -> OAuth Credentials -> Desktop Application -> Go through setup.
+8. Download the JSON file, name it `CLIENT_SECRET.json` and place the file inside the same folder as the program.
+9. Create Credentials -> API Key -> Copy and assign the key to the `YOUTUBE_API_KEY` environment variable.
 
 #### Discord Bot
 
