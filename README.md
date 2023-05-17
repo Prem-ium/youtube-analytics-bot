@@ -137,13 +137,28 @@ As always, please refer to the `.env.example' file for examples.
 `KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
 
 ## Donations
-If you find my project helpful and would like to support its development, please consider making a donation. Every little bit helps and is greatly appreciated!
+I've been working on this project for a few months now, and I'm really happy with how it's turned out. It's also been a helpful tool for users to earn some extra money with Bing Rewards. I'm currently working on adding new features to the script and working on other similar programs to generate passive income. I'm also working on making the script more user-friendly and accessible to a wider audience.
 
-You can donate by clicking on the following button:
-<div style="display:grid;justify-content:center;"><a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
-        <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 41px !important;width: 174px !important;box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;-webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;" ></a></div>
+I'm accepting donations through BuyMeCoffee or GitHub Sponsors. Any amount you can donate will be greatly appreciated.
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; justify-content: center; gap: 10px;">
+    <div style="display: grid; justify-content: center;">
+        <span>Buy Me a Coffee:</span>
+        <a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
+            <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 41px !important; width: 174px !important; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important; -webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;">
+        </a>
+    </div>
+    <div style="display: grid; justify-content: center;">
+        <span>GitHub Sponsors:</span>
+        <a href="https://github.com/sponsors/Prem-ium" target="_blank">
+            <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" style="height: 41px !important; width: 174px !important; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important; -webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;">
+        </a>
+    </div>
+</div>
+
+Your donations will help me to cover the costs of hosting the project, developing new features, and marketing the project to a wider audience.
 Thank you for your support!
+
 
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License.](https://choosealicense.com/licenses/bsd-3-clause/#)
