@@ -6,8 +6,7 @@
 <p align="right"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white"/><img src="https://img.shields.io/badge/Replit-DD1200?style=for-the-badge&logo=Replit&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/><a href="https://www.buymeacoffee.com/prem.ium" target="_blank"> <img align="right" src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
 </p>
 
-## Features & Input Formatting
-### Features:
+## Features:
 - Collects data on a variety of metrics, including views, revenue, subscriber growth, & more
 - Can be used to analyze the performance of a channel and identify areas for improvement
 - Discord Button User-Friendly UI
@@ -18,7 +17,7 @@
 
 
 
-### Commands & Input Formatting:
+## Input Formatting & Bot Commands:
 Start every command with `!`. Optional Command Input is denoted using [brackets]. 
 
 Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/blob/main/output-examples/README.MD) for output examples.
@@ -27,75 +26,28 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
    !stats 01/01 12/01
    !stats 01/01/2021 12/31/2021
 ```
-#### Discord Commands:
-- YouTube Analytics Report Card. Display Views, Watch-Time, Estimated Revenue, CPM, Ad-Impressions, & more. Defaults to current month if date range not specified📅
-```sh
-   !stats [startDate] [endDate]
-```
-- Return stats for a specific month 📆
-```sh
-   !getMonth [month/year]
-```
-- Get lifetime stats 🧮
-```sh
-   !lifetime
-```
-- Get a list of the highest revenue earning videos on your channel. 💰
-```sh
-   !topEarnings [startDate] [endDate] [Length to Return]
-```
-- Get list of your top revenue earning countries 🌎💰
-```sh
-   !geo_revenue [startDate] [endDate] [Length to Return]
-```
-- More detailed report of views, revenue, cpm, etc by country 🌎
-```sh
-   !geoReport [startDate] [endDate] [Length to Return]
-```
-- Get highest preforming ad types within specified time range 💰
-```sh
-   !adtype [startDate] [endDate]
-```
-- Get demographics data (age and gender) of viewers 👨‍👩‍👧‍👧
-```sh
-   !demographics [startDate] [endDate]
-```
-- Return list of top sharing methods for your videos. 📤
-```sh
-   !shares [startDate] [endDate] [Length to Return]
-```
-- Return YouTube search terms resulting in the most views of your video(s). 🔍
-```sh
-   !search [startDate] [endDate] [Length to Return]
-```
-- Return top operating systems watching your videos (ranked by views). 📟
-```sh
-   !os [startDate] [endDate] [Length to Return]
-```
-- Retrieve your Playlist Report
-```sh
-   !playlist [startDate] [endDate] [Length to Return]
-```
-- Return everything. Call every method and output all available data ♾️
-```sh
-   !everything [startDate] [endDate]
-```
-- Refresh API Token!
-```sh
-   !refresh [token]
-```
-- Switch Dev Mode On/Off
-```sh
-   !switch
-```
-- Send all Discord commands with explainations. 🦮
-```sh
-   !help
-```
-- Check to make sure bot is running
-```sh
-   !ping
-```
+#### Commands:
+| Command | Description |
+|---------|-------------|
+| `!button [startDate] [endDate]` | Open Discord Button UI with all supported commands |
+| `!stats [startDate] [endDate]` | 📅 YouTube Analytics Report Card. Display Views, Watch-Time, Estimated Revenue, CPM, Ad-Impressions, & more. Defaults to current month if date range not specified.  |
+| `!getMonth [month/year]` | Return stats for a specific month. 📆 |
+| `!lifetime` | Get lifetime stats. 🧮 |
+| `!topEarnings [startDate] [endDate] [Length to Return]` | Get a list of the highest revenue earning videos on your channel. 💰 |
+| `!geo_revenue [startDate] [endDate] [Length to Return]` | Get a list of your top revenue earning countries. 🌎💰 |
+| `!geoReport [startDate] [endDate] [Length to Return]` | More detailed report of views, revenue, cpm, etc by country. 🌎 |
+| `!adtype [startDate] [endDate]` | Get highest performing ad types within specified time range. 💰 |
+| `!demographics [startDate] [endDate]` | Get demographics data (age and gender) of viewers. 👨‍👩‍👧‍👧 |
+| `!shares [startDate] [endDate] [Length to Return]` | Return list of top sharing methods for your videos. 📤 |
+| `!search [startDate] [endDate] [Length to Return]` | Return YouTube search terms resulting in the most views of your video(s). 🔍 |
+| `!os [startDate] [endDate] [Length to Return]` | Return top operating systems watching your videos (ranked by views). 📟 |
+| `!playlist [startDate] [endDate] [Length to Return]` | Retrieve your Playlist Report. |
+| `!everything [startDate] [endDate]` | Return everything. Call every method and output all available data. ♾️ |
+| `!refresh [token]` | Refresh API Token! |
+| `!switch` | Switch Dev Mode On/Off. |
+| `!help` | Send all Discord commands with explanations. 🦮 |
+| `!ping` | Check to make sure bot is running. |
+
 
 #### TODO:
 - Resend Buttons at Bottom of Embed instead of Editing Stats
