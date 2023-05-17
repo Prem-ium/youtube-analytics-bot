@@ -683,15 +683,29 @@ if __name__ == "__main__":
             embed, response_str = await top_revenue(results=10, start=self.startDate, end=self.endDate)
             await interaction.response.send_message(response_str, embed=embed)
         
-        @discord.ui.button(label='Month Playlist Analytics', style=discord.ButtonStyle.blurple)
+        @discord.ui.button(label="Search Keyword Terms", style=discord.ButtonStyle.blurple)
+        async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
+        @discord.ui.button(label='Playlist Analytics', style=discord.ButtonStyle.blurple)
         async def playlist_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_playlist_stats(results=5, start=self.startDate, end=self.endDate)
             await interaction.response.send_message(response_str, embed=embed)
 
-        @discord.ui.button(label="Search Stats", style=discord.ButtonStyle.blurple)
-        async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
+        @discord.ui.button(label='Operating System', style=discord.ButtonStyle.blurple)
+        async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
             await interaction.response.send_message(response_str, embed=embed)
+
+        @discord.ui.button(label='Geographic', style=discord.ButtonStyle.blurple)
+        async def geo_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_detailed_georeport(results=5, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
+            embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
 
         @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
         async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -711,7 +725,11 @@ if __name__ == "__main__":
         @bot.event
         async def on_ready():
             channel = bot.get_channel(DISCORD_CHANNEL)
-            await channel.send('YouTube Analytics Bot is ready!')
+            embed = discord.Embed(title="YouTube Analytics Bot is Online!", description="Ready to explore your Channel Analytics with you!", color=0x00ff00)
+            embed.add_field(name="What can I do?", value="I'm a bot built to traverse YouTube API(s) to provide you with insights of your channel's analytics! Use the `!help` command to learn more about my features. You can specify date ranges using `mm/dd` or `mm/dd/yyyy` format.", inline=False)
+            embed.set_footer(text="Bot developed by Sazn Games (GitHub: Prem-ium).\nReport any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
+            await channel.send(embed=embed)
+            await channel.send(view=SimpleView(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")))
 
 
     @bot.command()
@@ -999,6 +1017,7 @@ if __name__ == "__main__":
     @bot.command()
     async def help(ctx):
         available_commands = [
+            "!button [startDate] [endDate]- Opens a view shortcut for all available commands.\nExamples: !button\t,\t!button 01/01 12/01\n\n",
             "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/01\t,\t!stats 01/01/2021 01/31/2021\n\n",
             "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\t,\t!getMonth 10/2020\n",
             "!lifetime - Get lifetime stats - Get lifetime stats\n",
