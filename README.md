@@ -88,14 +88,17 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
    !ping
 ```
 #### Features:
+- Collects data on a variety of metrics, including views, subscribers, and watch time
+- Can be used to analyze the performance of a channel and identify areas for improvement
 - Docker Support
+- Refresh Token Commands
 - Developer Mode
-- Analytical Reports delivering information on estimated revenue, cpm, & more
 - Refresh Token Ability
-- Replit Support (Dev mode -> Build from Document)
+- Replit & Flask Support (Dev mode -> Build from Document)
 
 
 #### TODO:
+- Resend Buttons at Bottom of Embed instead of Editing Stats
 - Google & YouTube Keyword SEO Research Command
 - Major Refactor Discord Commands
 
@@ -191,7 +194,7 @@ You can donate by clicking on the following button:
 Thank you for your support!
 
 ## License
-This repository uses the [BSD 3-Clause “New” or “Revised” License](https://choosealicense.com/licenses/bsd-3-clause/#)
+This repository uses the [BSD 3-Clause “New” or “Revised” License.](https://choosealicense.com/licenses/bsd-3-clause/#)
 
 ## Final Remarks
 This project was built thanks to YouTube Analytics & Data API Documentation. 

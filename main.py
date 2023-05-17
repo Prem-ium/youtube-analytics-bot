@@ -673,46 +673,51 @@ if __name__ == "__main__":
             
             asyncio.ensure_future(initialize_dates())
         
+        ##TODO: Add a way to resend buttons without making bot edit the message & destroy old stats
+        async def update_buttons(self, interaction: discord.Interaction, embed: discord.Embed, response_str: str):
+            await interaction.response.edit_message(content=response_str, embed=embed, view=self)
+
         @discord.ui.button(label='Analytics', style=discord.ButtonStyle.blurple)
         async def channel_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_stats(start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
+            await self.update_buttons(interaction, embed, response_str)
 
         @discord.ui.button(label="Top Revenue Videos", style=discord.ButtonStyle.blurple)
         async def top_earners(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await top_revenue(results=10, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
-        
+            await self.update_buttons(interaction, embed, response_str)
+
         @discord.ui.button(label="Search Keyword Terms", style=discord.ButtonStyle.blurple)
         async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
+            await self.update_buttons(interaction, embed, response_str)
 
-        @discord.ui.button(label='Playlist Analytics', style=discord.ButtonStyle.blurple)
+        @discord.ui.button(label='Playlist Stats', style=discord.ButtonStyle.blurple)
         async def playlist_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_playlist_stats(results=5, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
-
-        @discord.ui.button(label='Operating System', style=discord.ButtonStyle.blurple)
-        async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
-
+            await self.update_buttons(interaction, embed, response_str)
+        
         @discord.ui.button(label='Geographic', style=discord.ButtonStyle.blurple)
         async def geo_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_detailed_georeport(results=5, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
+            await self.update_buttons(interaction, embed, response_str)
 
             embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
-            await interaction.response.send_message(response_str, embed=embed)
+            await interaction.response.edit_message(content=response_str, embed=embed, view=self)
 
+        @discord.ui.button(label='OS Stats', style=discord.ButtonStyle.blurple)
+        async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
+            await self.update_buttons(interaction, embed, response_str)
+
+        
 
         @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
         async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
             status = await refresh(return_embed=False)
             print(status)
             await interaction.response.send_message(status)
-               
+
         @discord.ui.button(label='Ping!', style=discord.ButtonStyle.grey)
         async def got_ping(self, interaction: discord.Interaction, button: discord.ui.Button):
             await interaction.response.send_message('Pong!')
