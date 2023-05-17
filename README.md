@@ -1,7 +1,8 @@
-# 📊 YouTube Analytics Discord Bot 🤖
+# 📊 YouTube Analytics Discord Bot 🤖 
 
 An awesome Discord bot to retrieve & output your YouTube Analytics data.
-
+<p align="right"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white"/><img src="https://img.shields.io/badge/Replit-DD1200?style=for-the-badge&logo=Replit&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/><a href="https://www.buymeacoffee.com/prem.ium" target="_blank"> <img align="right" src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
+</p>
 
 ## Features & Discord Commands
 Start every command with `!`. Optional Command Input is denoted using [brackets]. 
