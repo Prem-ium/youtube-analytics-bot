@@ -30,7 +30,7 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import os, datetime, traceback, calendar, requests, json
+import os, datetime, traceback, calendar, requests, json, asyncio
 
 from calendar                       import monthrange
 from dotenv                         import load_dotenv
@@ -107,7 +107,7 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
             service = json.load(f)
         return build_from_document(service, credentials = credentials)
     except Exception as e:
-        print(f'Failed to get service: {e} {traceback.format_exc()}')
+        print(f'Failed to get service: {e}\n{traceback.format_exc()}')
         raise
 
 async def dev_mode():
@@ -189,16 +189,19 @@ def refresh_token(token=None):
                     json.dump(cred, f)
             else:
                 message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
-            
-    embed = discord.Embed(title=f"YouTube Analytics Bot Refresh", color=0x00ff00)
-    embed.add_field(name="Status", value=message, inline=False)
-    return embed
+    return message
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
 
-async def refresh(token=None):
-    return refresh_token(token)
+async def refresh(return_embed=False, token=None):
+    message = refresh_token(token)
+    if return_embed:
+        embed = discord.Embed(title=f"YouTube Analytics Bot Refresh", color=0x00ff00)
+        embed.add_field(name="Status", value=message, inline=False)
+        return embed
+    else:
+        return message
 
 async def update_dates(startDate, endDate):
     print(f'Received start date: {startDate} and end date: {endDate}')
@@ -659,6 +662,47 @@ if __name__ == "__main__":
     try:    CHANNEL_ID = YOUTUBE_DATA.channels().list(part="id",mine=True).execute()['items'][0]['id']
     except: print(traceback.format_exc())
 
+    class SimpleView(discord.ui.View):     
+        startDate: datetime = datetime.datetime.now().strftime("%Y-%m-01")
+        endDate: datetime = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        def __init__(self, startDate, endDate, timeout=None):
+            super().__init__(timeout=timeout)
+            async def initialize_dates():
+                self.startDate, self.endDate = await update_dates(startDate, endDate)
+            
+            asyncio.ensure_future(initialize_dates())
+        
+        @discord.ui.button(label='Analytics', style=discord.ButtonStyle.blurple)
+        async def channel_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_stats(start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
+        @discord.ui.button(label="Top Revenue Videos", style=discord.ButtonStyle.blurple)
+        async def top_earners(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await top_revenue(results=10, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+        
+        @discord.ui.button(label='Month Playlist Analytics', style=discord.ButtonStyle.blurple)
+        async def playlist_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_playlist_stats(results=5, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
+        @discord.ui.button(label="Search Stats", style=discord.ButtonStyle.blurple)
+        async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
+            await interaction.response.send_message(response_str, embed=embed)
+
+        @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
+        async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
+            status = await refresh(return_embed=False)
+            print(status)
+            await interaction.response.send_message(status)
+               
+        @discord.ui.button(label='Ping!', style=discord.ButtonStyle.grey)
+        async def got_ping(self, interaction: discord.Interaction, button: discord.ui.Button):
+            await interaction.response.send_message('Pong!')
+
     discord_intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=discord_intents)
     bot.remove_command('help')
@@ -668,6 +712,14 @@ if __name__ == "__main__":
         async def on_ready():
             channel = bot.get_channel(DISCORD_CHANNEL)
             await channel.send('YouTube Analytics Bot is ready!')
+
+
+    @bot.command()
+    async def button(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+        await ctx.send(f'{startDate} - {endDate} Button Session')
+        view = SimpleView(startDate, endDate, timeout=None)
+        await ctx.send(view=view)
+
 
     # Bot ping-pong command
     @bot.command(name='ping')
@@ -863,8 +915,7 @@ if __name__ == "__main__":
     @bot.command(aliases=['refresh', 'refresh_token', 'refreshToken'])
     async def refresh_API_token(ctx, token=None):
         try:
-            status = await refresh(token)
-            print(status)
+            status = await refresh(return_embed=True, token=token)
             await ctx.send(embed=status)
         except Exception as e:
             await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
