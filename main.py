@@ -709,8 +709,21 @@ if __name__ == "__main__":
         async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
             embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
             await self.update_buttons(interaction, embed, response_str)
-
         
+        @discord.ui.button(label='Traffic Source', style=discord.ButtonStyle.blurple)
+        async def traffic_source(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_traffic_source(results=5, start=self.startDate, end=self.endDate)
+            await self.update_buttons(interaction, embed, response_str)
+        
+        @discord.ui.button(label='Shares', style=discord.ButtonStyle.blurple)
+        async def shares(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await get_shares(results=5, start=self.startDate, end=self.endDate)
+            await self.update_buttons(interaction, embed, response_str)
+        
+        @discord.ui.button(label='Top Earning Countries', style=discord.ButtonStyle.blurple)
+        async def highest_earning_countries(self, interaction: discord.Interaction, button: discord.ui.Button):
+            embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
+            await self.update_buttons(interaction, embed, response_str)
 
         @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
         async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
