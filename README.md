@@ -121,20 +121,20 @@ Build with Docker only after running locally and generating a `credentials.json`
 As always, please refer to the `.env.example' file for examples. 
 
 ##### Required .env:
-`DISCORD_TOKEN` = Retrieve from https://discord.com/developers/applications
+| Environment Variable | Description |
+|----------------------|-------------|
+| `DISCORD_TOKEN`      | Retrieve from https://discord.com/developers/applications |
+| `YOUTUBE_API_KEY`    | YouTube Data API Key (Retrieve from Google Cloud Console Credentials's Page after enabling the YouTube Data API) |
 
-
-`YOUTUBE_API_KEY` = YouTube Data API Key (Retrieve from Google Cloud Console Credentials's Page after enabling the YouTube Data API)
 ##### Optional .env:
-`CLIENT_PATH` = Path of YouTube/Google Client Secret JSON file. Defaults to current directory (file named "CLIENT_SECRET.json")
+| Environment Variable | Description |
+|----------------------|-------------|
+| `CLIENT_PATH`        | Path of YouTube/Google Client Secret JSON file. Defaults to current directory (file named "CLIENT_SECRET.json") |
+| `DEV_MODE`           | Whether to use experimental features or not. MUST have CLIENT_SECRET configured. |
+| `CLIENT_SECRET`      | Contents of CLIENT_SECRET.JSON which includes refresh token value. Check .env.example for a reference. |
+| `DISCORD_CHANNEL`    | Turn on developer mode in advanced settings, right click on text channel, copy ID |
+| `KEEP_ALIVE`         | Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit. |
 
-`DEV_MODE`= Whether to use experimental features or not. MUST have CLIENT_SECRET configured.
-
-`CLIENT_SECRET`= Contents of CLIENT_SECRET.JSON which includes refresh token value. Check .env.example for a reference. 
-
-`DISCORD_CHANNEL` = Turn on developer mode in advanced settings, right click on text channel, copy ID
-
-`KEEP_ALIVE` = Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit.
 
 ## Donations
 I've been working on this project for a few months now, and I'm really happy with how it's turned out. It's also been a helpful tool for users to earn some extra money with Bing Rewards. I'm currently working on adding new features to the script and working on other similar programs to generate passive income. I'm also working on making the script more user-friendly and accessible to a wider audience.
