@@ -15,8 +15,6 @@
 - Efficient API Service Build Methods & Fail-Safe(s)
 - Ability to Run 24/7 using Replit & Flask (Dev Mode & Build From Document)
 
-
-
 ## Input Formatting & Bot Commands:
 Start every command with `!`. Optional Command Input is denoted using [brackets]. 
 
@@ -58,30 +56,36 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 
 #### Google Cloud Console (API Setup)
 
-1. To get started, head over to the Google Cloud Console website and create a new project.
-2. Click on 'API & Services' and 'Enable APIs and Services'.
-3. Search and enable both 'YouTube Data' and 'YouTube Analytics' API.
-4. Return to the API & Services page and click on 'credentials'.
-5. Select User Type (External) -> Configure OAuth Consent Screen -> Add YouTube Analytics related scopes:
-```
-   https://www.googleapis.com/auth/youtube.readonly
-   https://www.googleapis.com/auth/yt-analytics-monetary.readonly
-```
-6. Go through the rest of the configuration settings for OAuth
-7. Click Create Credentials -> OAuth Credentials -> Desktop Application -> Go through setup.
-8. Download the JSON file, name it `CLIENT_SECRET.json` and place the file inside the same folder as the program.
+To set up the Google Cloud Console API, follow these steps:
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/apis) website and create a new project.
+2. Click on **API & Services** and select **Enable APIs and Services**.
+3. Search for and enable both the **YouTube Data API** and **YouTube Analytics API**.
+4. Return to the **API & Services** page and click on **Credentials**.
+5. Select **User Type (External)**, then configure the **OAuth Consent Screen** by adding the following YouTube Analytics related scopes:
+   - `https://www.googleapis.com/auth/youtube.readonly`
+   - `https://www.googleapis.com/auth/yt-analytics-monetary.readonly`
+6. Go through the rest of the configuration settings for OAuth.
+7. Click **Create Credentials**, then select **OAuth Credentials**, followed by **Desktop Application**. Proceed with the setup.
+8. Download the JSON file, name it `CLIENT_SECRET.json`, and place the file inside the same folder as your program. You will be able to optionally assign the contents to the env variable `CLIENT_SECRET` after running the program and generating a refresh token.
 9. Create Credentials -> API Key -> Copy and assign the key to the `YOUTUBE_API_KEY` environment variable.
+
+Now your Google Cloud Console API is set up and ready to use!
 
 #### Discord Bot
 
-1. Go to https://discord.com/developers/ and create a new application. Name it YouTube Apprise or whatever you wish, accept the terms.
-2. Open the application -> OAuth2 -> URL Generator.
-3. Within Scopes, click 'Bot' and enable the desired bot permissions.
-4. Enable text permissions such as Send Messages & Read Message History. 
-5. Enable general permissions such as View Server Insights.
-6. Copy the generated link below Permissions and enter it in a browser. Add the bot to your server of choice (preferably your own private Discord server, as sensitive information such as revenue and CPM is accessible through bot commands).
-7. (Optional) Add a pretty profile picture for your bot in Rich Presence.
-8. Go to 'Bot' to obtain, reset, and retrieve the token. Assign it to the `DISCORD_TOKEN` environment variable.
+To set up the Discord bot, follow these steps:
+
+1. Go to [Discord Developers](https://discord.com/developers/) and create a new application. Name it "YouTube Apprise" or any desired name, then accept the terms.
+2. Open the created application and navigate to the **OAuth2** URL Generator section.
+3. Under **Scopes**, select **Bot** and enable the desired bot permissions.
+   - Make sure to enable text permissions like **Send Messages** and **Read Message History**.
+   - Additionally, enable general permissions such as **View Server Insights**.
+4. Copy the generated link located below the **Permissions** section and paste it into a browser. Use this link to add the bot to your chosen server. It is recommended to add the bot to your own private Discord server to protect sensitive information like revenue and CPM, accessible through bot commands.
+5. *(Optional)* Customize the bot's profile picture by adding a visually appealing image in the **Rich Presence** section.
+6. In the **Bot** section of the application, obtain, reset, or retrieve the token. Assign this token to the `DISCORD_TOKEN` environment variable.
+
+Now your Discord bot is ready to use!
 
 ## Installation
 
