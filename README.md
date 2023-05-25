@@ -13,7 +13,7 @@
 - Docker Support
 - Developer Mode
 - Efficient API Service Build Methods & Fail-Safe(s)
-- Ability to Run 24/7 using Replit & Flask (Dev Mode & Build From Document)
+- Ability to Run 24/7 using Replit & Flask (Dev Mode + Build From Document)
 
 ## Input Formatting & Bot Commands:
 Start every command with `!`. Optional Command Input is denoted using [brackets]. 
@@ -146,18 +146,15 @@ I've been working on this project for a few months now, and I'm really happy wit
 I'm accepting donations through BuyMeCoffee or GitHub Sponsors. Any amount you can donate will be greatly appreciated.
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; justify-content: center; gap: 10px;">
-    <div style="display: grid; justify-content: center;">
-        <span>Buy Me a Coffee:</span>
-        <a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
-            <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 41px !important; width: 174px !important; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important; -webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;">
+    <b>Buy Me a Coffee:</b>
+    <a href="https://www.buymeacoffee.com/prem.ium" target="_blank" style="text-decoration: none;">
+            <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 80px; width: 320px; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);"></a>
+</div>
+<div style="display: grid; grid-template-columns: 1fr 1fr; justify-content: center; gap: 10px;">
+    <b>GitHub Sponsors:</b>
+        <a href="https://github.com/sponsors/Prem-ium" target="_blank" style="text-decoration: none;">
+            <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" style="height: 80px; width: 320px; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);">
         </a>
-    </div>
-    <div style="display: grid; justify-content: center;">
-        <span>GitHub Sponsors:</span>
-        <a href="https://github.com/sponsors/Prem-ium" target="_blank">
-            <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" style="height: 41px !important; width: 174px !important; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important; -webkit-box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5) !important;">
-        </a>
-    </div>
 </div>
 
 Your donations will help me to cover the costs of hosting the project, developing new features, and marketing the project to a wider audience.
