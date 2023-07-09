@@ -3,9 +3,11 @@
 
 <p align="center">An <i>awesome</i> Python Discord Bot to fetch & display your YouTube Analytics data.</p>
 
-<p align="center"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white"/><img src="https://img.shields.io/badge/Replit-DD1200?style=for-the-badge&logo=Replit&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/><a href="https://www.buymeacoffee.com/prem.ium" target="_blank"> <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
-</p>
-
+<p align="center"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/>
+   <a href="https://github.com/sponsors/Prem-ium" target="_blank">
+        <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AA" alt="Github Sponsor"/></a>
+   <a href="https://www.buymeacoffee.com/prem.ium" target="_blank"> <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
+   </p>
 ## Features:
 - Collects data on a variety of metrics, including views, revenue, subscriber growth, & more
 - Can be used to analyze the performance of a channel and identify areas for improvement
@@ -143,19 +145,15 @@ As always, please refer to the `.env.example' file for examples.
 ## Donations
 I've been working on this project for a few months now, and I'm really happy with how it's turned out. It's also been a helpful tool for users to earn some extra money with Bing Rewards. I'm currently working on adding new features to the script and working on other similar programs to generate passive income. I'm also working on making the script more user-friendly and accessible to a wider audience.
 
-I'm accepting donations through BuyMeCoffee or GitHub Sponsors. Any amount you can donate will be greatly appreciated.
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; justify-content: center; gap: 10px;">
-    <b>Buy Me a Coffee:</b>
-    <a href="https://www.buymeacoffee.com/prem.ium" target="_blank" style="text-decoration: none;">
-            <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" style="height: 80px; width: 320px; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);"></a>
-</div>
-<div style="display: grid; grid-template-columns: 1fr 1fr; justify-content: center; gap: 10px;">
-    <b>GitHub Sponsors:</b>
-        <a href="https://github.com/sponsors/Prem-ium" target="_blank" style="text-decoration: none;">
-            <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" style="height: 80px; width: 320px; box-shadow: 0px 3px 2px 0px rgba(190, 190, 190, 0.5);">
-        </a>
-</div>
+I'm accepting donations through <a href="https://github.com/sponsors/Prem-ium">GitHub Sponsors (No Fees!)</a> or <a href="https://www.buymeacoffee.com/prem.ium">Buy-Me-Coffee</a>. Any amount you can donate will be greatly appreciated.
+  
+<a href="https://github.com/sponsors/Prem-ium" target="_blank">
+        <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" img width="15%">
+</a>
+<a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
+        <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" img width="15%">
+</a>
 
 Your donations will help me to cover the costs of hosting the project, developing new features, and marketing the project to a wider audience.
 Thank you for your support!
