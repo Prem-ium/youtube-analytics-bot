@@ -1,7 +1,7 @@
 <p align="right"><a href="https://www.youtube.com/channel/UCTBKWIcBRPGh2yhPkrIbJPw"><img src="https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white" alt="YouTube"/></a></p>
 <h1 align="center">📊 YouTube Analytics Discord Bot 🤖 </h1>
 
-<p align="center">An <i>awesome</i> Python Discord Bot to fetch & display your YouTube Analytics data.</p>
+<p align="center">An <i>awesome</i> Discord Bot to fetch & display your YouTube Analytics data.</p>
 
 <p align="center"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/>
    <a href="https://github.com/sponsors/Prem-ium" target="_blank">
@@ -28,7 +28,7 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
    !stats 01/01 12/01
    !stats 01/01/2021 12/31/2021
 ```
-#### Commands:
+#### Text Commands:
 | Command | Description |
 |---------|-------------|
 | `!button [startDate] [endDate]` | Open Discord Button UI with all supported commands |
@@ -50,11 +50,17 @@ Check [Example Output Folder](https://github.com/Prem-ium/youtube-analytics-bot/
 | `!help` | Send all Discord commands with explanations. 🦮 |
 | `!ping` | Check to make sure bot is running. |
 
-
-#### TODO:
-- Resend Buttons at Bottom of Embed instead of Editing Stats
-- Google & YouTube Keyword SEO Research Command
-- Major Refactor Discord Commands
+#### Button Supported Commands:
+Upon invoking the `!button` command, these are currently supported with a scene containing interactive buttons:
+- Analytics
+- Top Revenue Videos
+- Top Searched Keywords
+- Playlist Stats
+- Geographic Data
+- OS Statistics
+- Traffic Source
+- Shares
+- Top Geographic Based Revenue
 
 ## Set-Up
 
@@ -108,7 +114,7 @@ The bot can be run using Python or Docker.
     python main.py
    ```
 #### Docker Container
-Build with Docker only after running locally and generating a `credentials.json` file
+Build with Docker only after running locally and generating a `credentials.json` file (unless you've enabled developer mode)
 1. Run script locally with Python to generate credentials json file.
 2. Download and install Docker on your system
 3. Configure your `.env` file (See below and example for options)
@@ -145,26 +151,27 @@ As always, please refer to the `.env.example' file for examples.
 
 
 ## Donations
-I've been working on this project for a few months now, and I'm really happy with how it's turned out. It's also been a helpful tool for users to earn some extra money with Bing Rewards. I'm currently working on adding new features to the script and working on other similar programs to generate passive income. I'm also working on making the script more user-friendly and accessible to a wider audience.
+I've been working on this project for a few months now, and I'm really happy with how it's turned out. It has been a great tool to explore content creator's analytics with ease. I'm working on creating new features and optimizing the project to run queries as efficiently as possible.
 
+If you would like to show your appreciation for my work, I have set up two methods of sending in a donation: 
 
-I'm accepting donations through <a href="https://github.com/sponsors/Prem-ium">GitHub Sponsors (No Fees!)</a> or <a href="https://www.buymeacoffee.com/prem.ium">Buy-Me-Coffee</a>. Any amount you can donate will be greatly appreciated.
-  
+<a href="https://github.com/sponsors/Prem-ium">Github Sponsors</a>, the ideal donation method, to make donations with no fees!
 <a href="https://github.com/sponsors/Prem-ium" target="_blank">
-        <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" img width="15%">
+        <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" img width="25%">
 </a>
+Otherwise, <a href="https://www.buymeacoffee.com/prem.ium">Buy-Me-Coffee</a> can be used to place donations as well. 
 <a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
-        <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" img width="15%">
+        <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" img width="25%">
 </a>
 
-Your donations will help me to cover the costs of hosting the project, developing new features, and marketing the project to a wider audience.
-Thank you for your support!
+Your generous donations will greatly assist me in covering the expenses associated with developing new features and promoting the project to a broader audience. I extend my heartfelt gratitude to all those who have already contributed. 
+
+Thank you for your unwavering support!
 
 
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License.](https://choosealicense.com/licenses/bsd-3-clause/#)
 
 ## Final Remarks
-This project was built thanks to YouTube Analytics & Data API Documentation. 
 Please leave a :star2: if you found this project to be cool!
 May your analytics skyrocket up📈
