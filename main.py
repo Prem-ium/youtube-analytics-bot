@@ -699,7 +699,7 @@ if __name__ == "__main__":
         
         @discord.ui.button(label='Geographic', style=discord.ButtonStyle.blurple)
         async def geo_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_detailed_georeport(results=5, start=self.startDate, end=self.endDate)
+            embed, response_str = await get_detailed_georeport(results=5, startDate=self.startDate, endDate=self.endDate)
             await self.update_buttons(interaction, embed, response_str)
 
             embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
@@ -722,7 +722,7 @@ if __name__ == "__main__":
         
         @discord.ui.button(label='Top Earning Countries', style=discord.ButtonStyle.blurple)
         async def highest_earning_countries(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
+            embed, response_str = await top_countries_by_revenue(results=5, startDate=self.startDate, endDate=self.endDate)
             await self.update_buttons(interaction, embed, response_str)
 
         @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
