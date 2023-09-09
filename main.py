@@ -49,12 +49,13 @@ from discord.ext                    import commands, tasks
 from oauth2client                   import client, tools
 from google.oauth2.credentials      import Credentials
 
+# Import .env variables
 load_dotenv()
 
 if not os.environ["DISCORD_TOKEN"]:
-    raise Exception("DISCORD_TOKEN is missing within .env file, please add it and try again.")
+    raise Exception("ERROR: `DISCORD_TOKEN` is missing in .env, please add it and restart.")
 elif not os.environ["YOUTUBE_API_KEY"]:
-    raise Exception("This bot relies on YouTube Analytics AND Data API, please enable YouTube Data API.\nInsert the YouTube Data API key within YOUTUBE_API_KEY varibale in .env and try again.\n")
+    raise Exception("ERROR: `YOUTUBE_API_KEY` is missing in .env, please add it and restart.")
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 DISCORD_CHANNEL = os.environ.get("DISCORD_CHANNEL", None)
@@ -64,7 +65,6 @@ if DISCORD_CHANNEL:
 
 YOUTUBE_API_KEY = os.environ["YOUTUBE_API_KEY"]
 
-# Whether to use keep_alive.py
 if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
     from keep_alive                 import keep_alive
     keep_alive()
@@ -72,7 +72,7 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
 DEV_MODE = (os.environ.get("DEV_MODE", "False").lower() == "true")
 
 if DEV_MODE:
-    print(f'Development mode is enabled, using CLIENT_SECRET JSON Dict from .env file!! (Not JSON file)\n\nRemember to adjust your CLIENT_SECRET JSON Dict within .env to include refresh token.\nCheck .env.example for an example.\n\n')
+    print(f'{"- "*25}\nAttention: Developer mode enabled.\nThe program will be relying on CLIENT_SECRET JSON Dict to be assigned to the proper .env variable & will not search/use for a CLIENT_SECRET.json file.\n{"- "*25}')
    
     try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
     except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
@@ -80,16 +80,20 @@ if DEV_MODE:
 else:
     CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
+# Declare global scope
 SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics-monetary.readonly"]
 
-def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES):
+def get_service (API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SCOPES):
     global DEV_MODE, CLIENT_SECRETS
-    try:
-        if DEV_MODE:
+
+    # Build the service object if DEV_MODE is enabled, otherwise use the credentials.json file
+    if DEV_MODE:
+        try:
             credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
             return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    except: pass
+        except: print(f'Failed to build service: {e}\n{traceback.format_exc()}')
+
     try:
         credential_path = os.path.join('./', 'credentials.json')
         store = Storage(credential_path)
@@ -98,7 +102,8 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
             flow = client.flow_from_clientsecrets(CLIENT_SECRETS, SCOPES)
             credentials = tools.run_flow(flow, store)
         return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    except: pass
+    except: print(f'Failed to run client flow service: {e}\n{traceback.format_exc()}')
+    
     try:
         credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
         json_path = 'API_Service/Analytics-Service.json' if API_SERVICE_NAME == 'youtubeAnalytics' else 'API_Service/YouTube-Data-API.json'
@@ -107,21 +112,11 @@ def get_service(API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=SC
             service = json.load(f)
         return build_from_document(service, credentials = credentials)
     except Exception as e:
-        print(f'Failed to get service: {e}\n{traceback.format_exc()}')
+        print(f'Failed: Exhaused all get_service methods: {e}\n{traceback.format_exc()}')
         raise
 
-async def dev_mode():
-    global DEV_MODE, CLIENT_SECRETS
-    DEV_MODE = not DEV_MODE
-    if DEV_MODE:
-        print(f'Development mode is enabled, using CLIENT_SECRET JSON Dict from .env file!! (Not JSON file)\n\nRemember to adjust your CLIENT_SECRET JSON Dict within .env to include refresh token.\nCheck .env.example for an example.\n\n')
-        try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
-        except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
-        
-    else:
-        CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
-
-def refresh_token(token=None):
+def refresh_token (token=None):
+    print(f'Refreshing Credentials Access Token...')
     global DEV_MODE
     if DEV_MODE:
         global CLIENT_SECRETS
@@ -144,11 +139,8 @@ def refresh_token(token=None):
         response = requests.post('https://accounts.google.com/o/oauth2/token', data=data)
         if response.status_code == 200:
             response_json = response.json()
-            #print(response_json)
-            # Update token_response with new access token and expiry time
             CLIENT_SECRETS['access_token'] = response_json['access_token']
             CLIENT_SECRETS['expires_in'] = response_json['expires_in']
-
 
             # Calculate and update token expiry time
             now = datetime.datetime.now()
@@ -159,8 +151,6 @@ def refresh_token(token=None):
             YOUTUBE_DATA = get_service('youtube', 'v3', SCOPES)
         else:
             message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
-        #print(message)
-        # if token is None:   return f"Dev Mode is enabled, please provide a refresh token to update to.\n"
     else:
         message = None
         with open('credentials.json') as f:
@@ -191,9 +181,22 @@ def refresh_token(token=None):
                 message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
     return message
 
+# Swap between dev mode and normal mode
+async def dev_mode():
+    global DEV_MODE, CLIENT_SECRETS
+    DEV_MODE = not DEV_MODE
+    if DEV_MODE:
+        print(f'Developer mode is enabled. The program will be relying on CLIENT_SECRET JSON Dict to be assigned to the proper .env variable. (Not JSON file). Check .env.example for an example--Remember to add your refresh token in the JSON.\n\n')
+        try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
+        except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
+        
+    else:
+        CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
+
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
 
+# Refresh the token
 async def refresh(return_embed=False, token=None):
     message = refresh_token(token)
     if return_embed:
@@ -203,8 +206,9 @@ async def refresh(return_embed=False, token=None):
     else:
         return message
 
-async def update_dates(startDate, endDate):
-    print(f'Received start date: {startDate} and end date: {endDate}')
+# Change dates to API format
+async def update_dates (startDate, endDate):
+    #print(f'Received start date: {startDate} and end date: {endDate}')
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
     # If the start and end dates are in the first month of the year & they are the same date
@@ -232,10 +236,12 @@ async def update_dates(startDate, endDate):
         if len(endDate) == 5:
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
 
-    print(f'Updated dates to {startDate} - {endDate}')
+    #print(f'Updated dates to {startDate} - {endDate}')
     return startDate, endDate
 
-async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+
+# Discord bot command methods.
+async def get_stats (start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         # Query the YouTube Analytics API
         response = execute_api_request(
@@ -294,14 +300,13 @@ async def get_stats(start=datetime.datetime.now().strftime("%Y-%m-01"), end=date
 
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
-async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def top_revenue (results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         # Query the YouTube Analytics API
         response = execute_api_request(
@@ -321,8 +326,6 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
         for data in response['rows']:
             video_ids.append(data[0])
             earnings.append(data[1])
-
-        #youtube = googleapiclient.discovery.build("youtube", "v3", developerKey=YOUTUBE_API_KEY)
 
         # Query the YouTube Data API
         request = YOUTUBE_DATA.videos().list(
@@ -355,14 +358,13 @@ async def top_revenue(results=10, start=datetime.datetime.now().strftime("%Y-%m-
 
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
-async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+async def top_countries_by_revenue (results=10, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
         # Query the YouTube Analytics API
         response = execute_api_request(
@@ -393,14 +395,13 @@ async def top_countries_by_revenue(results=10, startDate=datetime.datetime.now()
 
         return embed, return_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
-async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def get_ad_preformance (start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         response = execute_api_request(
             YOUTUBE_ANALYTICS.reports().query,
@@ -425,14 +426,13 @@ async def get_ad_preformance(start=datetime.datetime.now().strftime("%Y-%m-01"),
 
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 # More detailed geo data/report
-async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+async def get_detailed_georeport (results=5, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
         # Get top preforming countries by revenue
         response = execute_api_request(
@@ -456,21 +456,17 @@ async def get_detailed_georeport(results=5, startDate=datetime.datetime.now().st
                     continue
                 response_str += f'\t{response["columnHeaders"][i]["name"]}:\t{round(row[i],2):,}\n'
                 embed.add_field(name=f"{response['columnHeaders'][i]['name']}:", value=f"{round(row[i],2):,}", inline=False)
-                #if len(response_str) > 1500:
-                 #   return response_str
-
             response_str += '\n'
 
         print(f'Data received:\t{response}\n\nReport Generated:\n{response_str}')
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
-async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+async def get_demographics (startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
     try:
         # Get top preforming countries by revenue
         response = execute_api_request(
@@ -482,17 +478,13 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
             metrics="viewerPercentage",
             sort="-viewerPercentage",
         )
-
-               # Format the start and end dates
-        startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace(
-            '-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
+        startDate, endDate = (startDate[5:] if startDate[:4] == endDate[:4] else f'{startDate[5:]}-{startDate[:4]}').replace('-', '/'), (endDate[5:] if startDate[:4] == endDate[:4] else f'{endDate[5:]}-{endDate[:4]}').replace('-', '/')
         response_str = f'Gender Viewership Demographics ({startDate}\t-\t{endDate})\n\n'
         embed = discord.Embed(title=f"Gender Viewership Demographics ({startDate}\t-\t{endDate})", color=0x00ff00)
 
         # Parse the response into nice formatted string
         for row in response['rows']:
             if round(row[2],2) < 1: break
-            # split string after index of 'e'
             row[0] = row[0].split('e')
 
             response_str += f'{round(row[2],2)}% Views come from {row[1]} with age of {row[0][1]}\n'
@@ -500,13 +492,12 @@ async def get_demographics(startDate=datetime.datetime.now().strftime("%m/01/%y"
         print(f'Demographics Report Generated & Sent:\n{response_str}')
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
-async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def get_shares (results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="sharingService",
@@ -530,13 +521,12 @@ async def get_shares(results = 5, start=datetime.datetime.now().strftime("%Y-%m-
         print(f'Shares Report Generated & Sent:\n{response_str}')
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
-async def get_traffic_source(results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def get_traffic_source (results=10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="insightTrafficSourceDetail",
@@ -562,14 +552,13 @@ async def get_traffic_source(results=10, start=datetime.datetime.now().strftime(
 
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
 
-async def get_operating_stats(results = 10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def get_operating_stats (results = 10, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="operatingSystem",
@@ -580,25 +569,21 @@ async def get_operating_stats(results = 10, start=datetime.datetime.now().strfti
             sort="-views,estimatedMinutesWatched",
             startDate=start
         ).execute()
-        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
-        start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace(
-            '-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
+        start_str, end_str = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
         response_str = f'Top Operating System ({start_str}\t-\t{end_str})\n'
         embed = discord.Embed(title=f"Top Operating System ({start_str}\t-\t{end_str})", color=0x00ff00)
-        # {round(row[i],2):,}
         for row in request['rows']:
             response_str += f'\t{row[0]}:\n\t\tViews:\t\t{round(row[1], 2):,}\n\t\tEstimated Watchtime:\t\t{round(row[2],2):,}\n'
             embed.add_field(name=f'{row[0]}:', value=f"Views:\t\t{round(row[1], 2):,}\nEstimated Watchtime:\t\t{round(row[2],2):,}", inline=False)
         print(response_str)
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
     
-async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
+async def get_playlist_stats (results = 5, start=datetime.datetime.now().strftime("%Y-%m-01"), end=datetime.datetime.now().strftime("%Y-%m-%d")):
     try:
         request = YOUTUBE_ANALYTICS.reports().query(
             dimensions="playlist",
@@ -612,9 +597,7 @@ async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime
         )
         response = request.execute()
 
-        # Assuming the JSON data is stored in a variable called 'json_data'
         playlist_ids = ','.join([row[0] for row in response['rows']])
-
         playlist_ids = []
         views = []
         playlist_starts = []
@@ -632,9 +615,7 @@ async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime
             id=playlist_ids
         )
         response = request.execute()
-        # Terminary operator to check if start/end year share a year, and strip/remove if that's the case
         start, end = (start[5:] if start[:4] == end[:4] else f'{start[5:]}-{start[:4]}').replace('-', '/'), (end[5:] if start[:4] == end[:4] else f'{end[5:]}-{end[:4]}').replace('-', '/')
-
         response_str = f'```YouTube Analytics Report ({start}\t-\t{end})\n\n'
         embed = discord.Embed(title=f"Top Operating System ({start}\t-\t{end})", color=0x00ff00)
         for row in response['items']:
@@ -644,24 +625,29 @@ async def get_playlist_stats(results = 5, start=datetime.datetime.now().strftime
         print('Playlist Report Generated:\n', response_str)
         return embed, response_str
     
-    except HttpAccessTokenRefreshError: 
-        return "The credentials have been revoked or expired, please re-run the application to re-authorize."
+    except HttpAccessTokenRefreshError:     return "The credentials have been revoked or expired, please re-run the application to re-authorize."
     except Exception as e:
         print(traceback.format_exc())
         return f"Ran into {e.__class__.__name__} exception, {traceback.format_exc()}"
 
+
+
+# Start the bot
 if __name__ == "__main__":
+    print('Gaining Access to API Services...')
     YOUTUBE_ANALYTICS = get_service()
     YOUTUBE_DATA = get_service("youtube", "v3", YOUTUBE_API_KEY)
-
-    # Attempt token refresh at the start of the program
+    print('API Services Built.')
+    
+    # Refresh Token & Retrieve Channel ID at Launch 
     try: refresh_token()
     except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
-    except Exception as e: print(e.__class__.__name__, e)
 
     try:    CHANNEL_ID = YOUTUBE_DATA.channels().list(part="id",mine=True).execute()['items'][0]['id']
     except: print(traceback.format_exc())
 
+    
+    # View class for Discord bot, handles all button interactions
     class SimpleView(discord.ui.View):     
         startDate: datetime = datetime.datetime.now().strftime("%Y-%m-01")
         endDate: datetime = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -735,6 +721,7 @@ if __name__ == "__main__":
         async def got_ping(self, interaction: discord.Interaction, button: discord.ui.Button):
             await interaction.response.send_message('Pong!')
 
+
     discord_intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=discord_intents)
     bot.remove_command('help')
@@ -749,6 +736,12 @@ if __name__ == "__main__":
             await channel.send(embed=embed)
             await channel.send(view=SimpleView(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")))
 
+    # Bot ping-pong command
+    @bot.command(name='ping')
+    async def ping(ctx):
+        # Send a 'pong' message to the user & print user and time to console
+        await ctx.send('pong')
+        print(f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     @bot.command()
     async def button(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
@@ -756,13 +749,6 @@ if __name__ == "__main__":
         view = SimpleView(startDate, endDate, timeout=None)
         await ctx.send(view=view)
 
-
-    # Bot ping-pong command
-    @bot.command(name='ping')
-    async def ping(ctx):
-        # Send a 'pong' message to the user & print user and time to console
-        await ctx.send('pong')
-        print(f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     # Retrieve Analytic stats within specified date range, defaults to current month
     @bot.command(aliases=['stats', 'thisMonth', 'this_month'])
@@ -778,8 +764,7 @@ if __name__ == "__main__":
             
             # Print a message to the console indicating that the stats were sent
             print(f'\n{startDate} - {endDate} stats sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Lifetime stats
     @bot.command(aliases=['lifetime', 'alltime', 'allTime'])
@@ -789,8 +774,7 @@ if __name__ == "__main__":
             try:    await ctx.send(embed=stats[0])
             except: pass
             finally: await ctx.send(stats[1])
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Last month's stats
     @bot.command(aliases=['lastMonth'])
@@ -806,8 +790,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Retrieve top earning videos within specified date range between any month/year, defaults to current month
     @bot.command(aliases=['getMonth', 'get_month'])
@@ -825,8 +808,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) stats sent\n')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Retrieve top earning videos within specified date range, defaults to current month
     @bot.command(aliases=['topEarnings', 'topearnings', 'top_earnings'])
@@ -839,8 +821,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} top {results} sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Top revenue by country
     @bot.command(aliases=['geo_revenue', 'geoRevenue', 'georevenue'])
@@ -852,8 +833,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\nLast month ({startDate} - {endDate}) geo-revenue report sent\n')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Geo Report (views, revenue, cpm, etc)
     @bot.command(aliases=['geo_report', 'geoReport', 'georeport'])
@@ -865,8 +845,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} earnings by country sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Ad Type Preformance Data
     @bot.command(aliases=['adtype', 'adPreformance', 'adpreformance'])
@@ -878,8 +857,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} ad preformance sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Demographics Report
     @bot.command(aliases=['demographics', 'gender', 'age'])
@@ -892,8 +870,7 @@ if __name__ == "__main__":
             finally: await ctx.send(stats[1])
 
             print(f'\n{startDate} - {endDate} demographics sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
     # Shares Report
     @bot.command(aliases=['shares', 'shares_report', 'sharesReport', 'share_report', 'shareReport'])
     async def share_rep(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=5):
@@ -905,8 +882,7 @@ if __name__ == "__main__":
             finally: await ctx.send(stats[1])
 
             print(f'\n{startDate} - {endDate} shares result sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Search Terms Report
     @bot.command(aliases=['search', 'search_terms', 'searchTerms', 'search_report', 'searchReport'])
@@ -918,8 +894,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} search terms result sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
             
     # Top Operating Systems
     @bot.command(aliases=['os', 'operating_systems', 'operatingSystems', 'topoperatingsystems'])
@@ -931,8 +906,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} operating systems result sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Playlist Report
     @bot.command(aliases=['playlist', 'playlist_report', 'playlistReport'])
@@ -944,8 +918,7 @@ if __name__ == "__main__":
             except: pass
             finally: await ctx.send(stats[1])
             print(f'\n{startDate} - {endDate} playlist stats result sent')
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Refresh Token
     @bot.command(aliases=['refresh', 'refresh_token', 'refreshToken'])
@@ -953,28 +926,22 @@ if __name__ == "__main__":
         try:
             status = await refresh(return_embed=True, token=token)
             await ctx.send(embed=status)
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Swap Dev Mode
     @bot.command(aliases=['switch', 'devToggle'])
     async def sw_dev(ctx):
         try:
             embed = discord.Embed(title=f"Switch Dev Mode", color=0x00ff00)
-            status = f'Dev mode is now: {DEV_MODE}\nCall the command again to switch.\n'
             embed.add_field(name="Previous Dev Status:", value=DEV_MODE, inline=False)
             await dev_mode()
-            status += f'\nDev mode is now: {DEV_MODE}'
             embed.add_field(name="Updated Dev Status:", value=DEV_MODE, inline=False)
-            print(status)
             await ctx.send(embed=embed)
-            await ctx.send(status)
-        except Exception as e:
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Send everything.
     @bot.command(aliases=['everything', 'all_stats', 'allStats', 'allstats'])
-    async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
+    async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
         try:
             # Get statistics
@@ -983,12 +950,12 @@ if __name__ == "__main__":
             await ctx.send(embed=stats)
             
             # Get top revenue
-            top_rev = await top_revenue(10, startDate, endDate)
+            top_rev = await top_revenue(results, startDate, endDate)
             top_rev = top_rev[0]
             await ctx.send(embed=top_rev)
             
             # Get top countries by revenue
-            top_countries = await top_countries_by_revenue(10, startDate, endDate)
+            top_countries = await top_countries_by_revenue(results, startDate, endDate)
             top_countries = top_countries[0]
             await ctx.send(embed=top_countries)
 
@@ -1008,28 +975,27 @@ if __name__ == "__main__":
             await ctx.send(embed=demographics)
 
             # Get shares report
-            shares = await get_shares(5, startDate, endDate)
+            shares = await get_shares(results, startDate, endDate)
             shares = shares[0]
             await ctx.send(embed=shares)
 
             # Get search terms report
-            search_terms = await get_traffic_source(10, startDate, endDate)
+            search_terms = await get_traffic_source(results, startDate, endDate)
             search_terms = search_terms[0]
             await ctx.send(embed=search_terms)
 
             # Get top operating systems
-            top_os = await get_operating_stats(10, startDate, endDate)
+            top_os = await get_operating_stats(results, startDate, endDate)
             top_os = top_os[0]
             await ctx.send(embed=top_os)
 
             # Get Playlist Report
-            playlist_report = await get_playlist_stats(5, startDate, endDate)
+            playlist_report = await get_playlist_stats(results, startDate, endDate)
             playlist_report = playlist_report[0]
             await ctx.send(embed=playlist_report)
 
             print(f'\n{startDate} - {endDate} everything sent')
-        except Exception as e:  
-            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+        except Exception as e:      await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
     # Help command
     @bot.command()
@@ -1061,24 +1027,19 @@ if __name__ == "__main__":
         for command in available_commands:
             embed.add_field(name=f'{command.split(" ")[0]}:', value=command, inline=False)
 
-        embed.set_footer(text="Bot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
-        # Send the embed to the Discord channel
+        embed.set_footer(text="Bot developed by Prem-ium. Official Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
         await ctx.send(embed=embed)
-        # Use the join method to concatenate all the elements in the list
         available_commands = "\n".join(available_commands)
-
         await ctx.send(f"Available commands:\n\n{available_commands}")
         await ctx.send(f"\n\n\n\n[brackets indicate optional values to pass in, if none are provided, default values will be used.]\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.\n\nBot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot\n\n")
 
     # Restart command
     @bot.command(name='restart')
     async def restart(ctx):
-        print("Restarting...")
-        print()
-        await ctx.send("Restarting...\nNote: This does not work on Replit (unless you use a paid plan).)")
+        print(f"Restarting...\n")
+        await ctx.send(f"Restarting the bot...\nNote: Restart may not work if the bot is running on a Free Tier Repl on Replit.")
         await bot.close()
         os._exit(0)
 
-    # Run Discord bot
+    print(f"Booting up Discord Bot...\n{'-'*150}")
     bot.run(DISCORD_TOKEN)
-    print('Discord bot is online...')
