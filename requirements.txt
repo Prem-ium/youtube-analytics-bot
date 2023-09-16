@@ -1,11 +1,8 @@
-asyncio
 discord.py
 Flask
-google-auth
-google-auth-oauthlib
-google-auth-httplib2
-google-api-python-client
+google_api_python_client
+google_auth_oauthlib
 oauth2client
 protobuf
 python-dotenv
-requests
+Requests

@@ -34,18 +34,14 @@ import os, datetime, traceback, calendar, requests, json, asyncio
 
 from calendar                       import monthrange
 from dotenv                         import load_dotenv
-from time                           import sleep
 
 import discord
 import google, google_auth_oauthlib, googleapiclient.errors
 
-
 from oauth2client.client            import HttpAccessTokenRefreshError
-from google_auth_oauthlib.flow      import InstalledAppFlow
-from google.auth.exceptions         import RefreshError, GoogleAuthError
 from googleapiclient.discovery      import build, build_from_document
 from oauth2client.file              import Storage
-from discord.ext                    import commands, tasks
+from discord.ext                    import commands
 from oauth2client                   import client, tools
 from google.oauth2.credentials      import Credentials
 
@@ -115,6 +111,24 @@ def get_service (API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=S
         print(f'Failed: Exhaused all get_service methods: {e}\n{traceback.format_exc()}')
         raise
 
+# Swap between dev mode and normal mode
+async def dev_mode():
+    global DEV_MODE, CLIENT_SECRETS
+    DEV_MODE = not DEV_MODE
+    
+    if DEV_MODE:
+        # Developer mode is enabled
+        print("Developer mode is enabled. The program will rely on CLIENT_SECRET JSON Dict assigned to the proper .env variable.")
+        print("Check .env.example for an example. Remember to add your refresh token in the JSON.\n")
+        try:
+            CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", "{}")).get("installed")
+            if CLIENT_SECRETS is None:
+                raise Exception("CLIENT_SECRET is missing within .env file. Please add it and try again.")
+        except json.JSONDecodeError:
+            raise Exception("CLIENT_SECRET in .env is not a valid JSON string.")
+    else:
+        CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
+        
 def refresh_token (token=None):
     print(f'Refreshing Credentials Access Token...')
     global DEV_MODE
@@ -180,18 +194,6 @@ def refresh_token (token=None):
             else:
                 message = f"{response.status_code}:\tFalied to refresh token\t{datetime.datetime.now()}\n{response.text}"
     return message
-
-# Swap between dev mode and normal mode
-async def dev_mode():
-    global DEV_MODE, CLIENT_SECRETS
-    DEV_MODE = not DEV_MODE
-    if DEV_MODE:
-        print(f'Developer mode is enabled. The program will be relying on CLIENT_SECRET JSON Dict to be assigned to the proper .env variable. (Not JSON file). Check .env.example for an example--Remember to add your refresh token in the JSON.\n\n')
-        try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
-        except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
-        
-    else:
-        CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
 def execute_api_request(client_library_function, **kwargs):
     return client_library_function(**kwargs).execute()
@@ -632,7 +634,10 @@ async def get_playlist_stats (results = 5, start=datetime.datetime.now().strftim
 
 
 
-# Start the bot
+
+
+
+
 if __name__ == "__main__":
     print('Gaining Access to API Services...')
     YOUTUBE_ANALYTICS = get_service()
@@ -652,7 +657,7 @@ if __name__ == "__main__":
         startDate: datetime = datetime.datetime.now().strftime("%Y-%m-01")
         endDate: datetime = datetime.datetime.now().strftime("%Y-%m-%d")
 
-        def __init__(self, startDate, endDate, timeout=None):
+        def __init__(self, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), timeout=None):
             super().__init__(timeout=timeout)
             async def initialize_dates():
                 self.startDate, self.endDate = await update_dates(startDate, endDate)
@@ -730,22 +735,57 @@ if __name__ == "__main__":
         @bot.event
         async def on_ready():
             channel = bot.get_channel(DISCORD_CHANNEL)
-            embed = discord.Embed(title="YouTube Analytics Bot is Online!", description="Ready to explore your Channel Analytics with you!", color=0x00ff00)
-            embed.add_field(name="What can I do?", value="I'm a bot built to traverse YouTube API(s) to provide you with insights of your channel's analytics! Use the `!help` command to learn more about my features. You can specify date ranges using `mm/dd` or `mm/dd/yyyy` format.", inline=False)
-            embed.set_footer(text="Bot developed by Sazn Games (GitHub: Prem-ium).\nReport any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
-            await channel.send(embed=embed)
-            await channel.send(view=SimpleView(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")))
 
-    # Bot ping-pong command
-    @bot.command(name='ping')
-    async def ping(ctx):
-        # Send a 'pong' message to the user & print user and time to console
-        await ctx.send('pong')
-        print(f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
+            await channel.send(embed=discord.Embed(
+                title="YouTube Analytics Bot Online",
+                description="The bot is ready to provide YouTube analytics at your command!",
+                color=discord.Color.green()
+            ))
+            await channel.send(view=SimpleView())
 
+    # Help command
     @bot.command()
-    async def button(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y")):
-        await ctx.send(f'{startDate} - {endDate} Button Session')
+    async def help(ctx):
+        available_commands = [
+            {"command": "!button",      "parameters": "[startDate] [endDate]",                  "description": "Opens a view shortcut for all available commands",              "example": "!button -- !button 01/01 12/01\n"},
+            {"command": "!stats",       "parameters": "[startDate] [endDate]",                  "description": "Return stats within a time range (defaults to current month)",  "example": "!stats 01/01 12/01 -- !stats 01/01/2021 01/31/2021\n"},
+            {"command": "!getMonth",    "parameters": "[month/year]",                           "description": "Return stats for a specific month",                             "example": "!getMonth 01/21 -- !getMonth 10/2020\n"},
+            {"command": "!lifetime",    "parameters": "None",                                   "description": "Get lifetime stats",                                            "example": "!lifetime\n"},
+            {"command": "!topEarnings", "parameters": "[startDate] [endDate] [# of countries]", "description": "Return top revenue-earning videos",                             "example": "!topEarnings 01/01 12/1 5\n"},
+            {"command": "!geo_revenue", "parameters": "[startDate] [endDate] [# of countries]", "description": "Top countries by revenue",                                      "example": "!geo_revenue 01/01 12/1 5\n"},
+            {"command": "!geoReport",   "parameters": "[startDate] [endDate] [# of countries]", "description": "More detailed revenue report by country",                       "example": "!geoReport 01/01 12/1 5\n"},
+            {"command": "!adtype",      "parameters": "[startDate] [endDate]",                  "description": "Get highest performing ad types",                               "example": "!adtype 01/01 12/1\n"},
+            {"command": "!demographics","parameters": "[startDate] [endDate]",                  "description": "Get viewer demographics data (age and gender)",                 "example": "!demographics 01/01 12/1\n"},
+            {"command": "!shares",      "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top videos by shares",                                   "example": "!shares 01/01 12/1 5\n"},
+            {"command": "!search",      "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top search terms by views",                              "example": "!search 01/01 12/1 5\n"},
+            {"command": "!os",          "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top operating systems by views",                         "example": "!os 01/01 12/1 5\n"},
+            {"command": "!playlist",    "parameters": "[startDate] [endDate] [# of results]",   "description": "Return playlist stats",                                         "example": "!playlist 01/01 12/1\n"},
+            {"command": "!everything",  "parameters": "[startDate] [endDate]",                  "description": "Return all available data",                                     "example": "!everything 01/01 12/1\n\n"},
+            {"command": "!refresh",     "parameters": "None",                                   "description": "Refresh the API token",                                         "example": "!refresh"},
+            {"command": "!switch",      "parameters": "None",                                   "description": "Toggle between dev and user mode (temporary)",                  "example": "!switch"},
+            {"command": "!restart",     "parameters": "None",                                   "description": "Restart the bot",                                               "example": "!restart"},
+            {"command": "!help",        "parameters": "None",                                   "description": "Show this help message",                                        "example": "!help"},
+            {"command": "!ping",        "parameters": "None",                                   "description": "Check bot latency",                                             "example": "!ping"},
+        ]
+        current_field = "Parameters are optional, most commands have default dates, denoted by [].\n\n"
+
+        for cmd_info in available_commands:
+            field_content = f"**Command:** {cmd_info['command']}\n"
+            field_content +=f"**Parameters:** {cmd_info['parameters']}\n" if cmd_info['parameters'] != "None" else ""
+            field_content += f"**Description:** {cmd_info['description']}\n"
+            field_content+=f"**Example:** {cmd_info['example']}\n\n" if cmd_info['example'] != cmd_info["command"] else "\n"
+
+            current_field += field_content
+
+        embed = discord.Embed(title="Help: Available Commands", color=0x00ff00)
+        embed.description = current_field
+        embed.set_footer(text="Bot developed by Prem-ium.\nhttps://github.com/Prem-ium/youtube-analytics-bot\n")
+        await ctx.send(embed=embed)
+
+
+    # Button command, opens a View with supported commands
+    @bot.command()
+    async def button(ctx, startDate, endDate):
         view = SimpleView(startDate, endDate, timeout=None)
         await ctx.send(view=view)
 
@@ -928,111 +968,44 @@ if __name__ == "__main__":
             await ctx.send(embed=status)
         except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
-    # Swap Dev Mode
     @bot.command(aliases=['switch', 'devToggle'])
     async def sw_dev(ctx):
         try:
-            embed = discord.Embed(title=f"Switch Dev Mode", color=0x00ff00)
-            embed.add_field(name="Previous Dev Status:", value=DEV_MODE, inline=False)
-            await dev_mode()
-            embed.add_field(name="Updated Dev Status:", value=DEV_MODE, inline=False)
-            await ctx.send(embed=embed)
-        except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+            dev_mode_status = await dev_mode()
+            message = f"Dev Mode has been {'enabled' if dev_mode_status else 'disabled'}."
+            await ctx.send(message)
+        except Exception as e:
+            await ctx.send(f'Error:\n{e}\n{traceback.format_exc()}')
 
-    # Send everything.
+
     @bot.command(aliases=['everything', 'all_stats', 'allStats', 'allstats'])
     async def all(ctx, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), results=10):
         startDate, endDate = await update_dates(startDate, endDate)
+    
+        # Define a list of functions to call with arguments
+        stat_functions = [
+            (get_stats, (startDate, endDate)),
+            (top_revenue, (results, startDate, endDate)),
+            (top_countries_by_revenue, (results, startDate, endDate)),
+            (get_ad_preformance, (startDate, endDate)),
+            (get_detailed_georeport, (results, startDate, endDate)),
+            (get_demographics, (startDate, endDate)),
+            (get_shares, (results, startDate, endDate)),
+            (get_traffic_source, (results, startDate, endDate)),
+            (get_operating_stats, (results, startDate, endDate)),
+            (get_playlist_stats, (results, startDate, endDate)),
+        ]
+
         try:
-            # Get statistics
-            stats = await get_stats(startDate, endDate)
-            stats = stats[0]
-            await ctx.send(embed=stats)
-            
-            # Get top revenue
-            top_rev = await top_revenue(results, startDate, endDate)
-            top_rev = top_rev[0]
-            await ctx.send(embed=top_rev)
-            
-            # Get top countries by revenue
-            top_countries = await top_countries_by_revenue(results, startDate, endDate)
-            top_countries = top_countries[0]
-            await ctx.send(embed=top_countries)
-
-            # Get ad performance
-            ad_performance = await get_ad_preformance(startDate, endDate)
-            ad_performance = ad_performance[0]
-            await ctx.send(embed=ad_performance)
-            
-            # Get detailed georeport
-            georeport = await get_detailed_georeport(3, startDate, endDate)
-            georeport = georeport[0]
-            await ctx.send(embed=georeport)
-            
-            # Get demographics report
-            demographics = await get_demographics(startDate, endDate)
-            demographics = demographics[0]
-            await ctx.send(embed=demographics)
-
-            # Get shares report
-            shares = await get_shares(results, startDate, endDate)
-            shares = shares[0]
-            await ctx.send(embed=shares)
-
-            # Get search terms report
-            search_terms = await get_traffic_source(results, startDate, endDate)
-            search_terms = search_terms[0]
-            await ctx.send(embed=search_terms)
-
-            # Get top operating systems
-            top_os = await get_operating_stats(results, startDate, endDate)
-            top_os = top_os[0]
-            await ctx.send(embed=top_os)
-
-            # Get Playlist Report
-            playlist_report = await get_playlist_stats(results, startDate, endDate)
-            playlist_report = playlist_report[0]
-            await ctx.send(embed=playlist_report)
+            for stat_function, args in stat_functions:
+                result = await stat_function(*args)
+                result = result[0]  # Assuming you want the first result if it's a list
+                await ctx.send(embed=result)
 
             print(f'\n{startDate} - {endDate} everything sent')
-        except Exception as e:      await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
-
-    # Help command
-    @bot.command()
-    async def help(ctx):
-        available_commands = [
-            "!button [startDate] [endDate]- Opens a view shortcut for all available commands.\nExamples: !button\t,\t!button 01/01 12/01\n\n",
-            "!stats [startDate] [endDate] - Return stats within time range. Defaults to current month\nExample: !stats 01/01 12/01\t,\t!stats 01/01/2021 01/31/2021\n\n",
-            "!getMonth [month/year] - Return stats for a specific month.\nExample: !getMonth 01/21\t,\t!getMonth 10/2020\n",
-            "!lifetime - Get lifetime stats - Get lifetime stats\n",
-            "!topEarnings [startDate] [endDate] [# of countries to return (Default: 10)] - Return top specified highest revenue earning videos.\nExample: !topEarnings 01/01 12/1 5\n\n",
-            "!geo_revenue [startDate] [endDate] [# of countries to return] - Top Specific (default 10) countries by revenue\nExample: !geo_revenue 01/01 12/1 5\n\n",
-            "!geoReport [startDate] [endDate] [# of countries to return] - More detailed report of views, revenue, cpm, etc by country\nExample: !geoReport 01/01 12/1 5\n\n",
-            "!adtype [startDate] [endDate] - Get highest preforming ad types within specified time range\nExample: !adtype 01/01 12/1\n\n",
-            "!demographics [startDate] [endDate] - - Get demographics data (age and gender) of viewers\nExample: !demographics 01/01 12/1\n\n",
-            "!shares [startDate] [endDate] [# of results to return (Default: 5)] - Return top specified highest shares videos.\nExample: !shares 01/01 12/1 5\n\n",
-            "!search [startDate] [endDate] [# of results to return (Default: 10)] - Return top specified highest search terms (ranked by views).\nExample: !search 01/01 12/1 5\n\n",
-            "!os [startDate] [endDate] [# of results to return (Default: 10)] - Return top operating systems watching your videos (ranked by views).\nExample: !os 01/01 12/1 5\n\n",
-            "!playlist [startDate] [endDate] [# of results to return (Default: 5)] - Return playlist stats\nExample: !playlist 01/01 12/1\n\n",
-            "!everything [startDate] [endDate] - Return everything. Call every method and output all available data\nExample: !everything 01/01 12/1\n\n",
-            "!refresh - Refresh the API token!!\n",
-            "!switch - (Temp) Toggle between dev and user mode\n"
-            "!restart - Restart the bot",
-            "!help\t!ping"
-        ]
-        # Create an embed
-        embed = discord.Embed(title=f"Help: Available Commands", color=0x00ff00)
-
-        # Add each command as a field
-        for command in available_commands:
-            embed.add_field(name=f'{command.split(" ")[0]}:', value=command, inline=False)
-
-        embed.set_footer(text="Bot developed by Prem-ium. Official Github Repository: https://github.com/Prem-ium/youtube-analytics-bot")
-        await ctx.send(embed=embed)
-        available_commands = "\n".join(available_commands)
-        await ctx.send(f"Available commands:\n\n{available_commands}")
-        await ctx.send(f"\n\n\n\n[brackets indicate optional values to pass in, if none are provided, default values will be used.]\nMost commands can be called without specifying a date range. If no date range is specified, usually current or last month will be used.\n\nBot developed by Prem-ium. Report any issues to the Github Repository: https://github.com/Prem-ium/youtube-analytics-bot\n\n")
-
+        except Exception as e:
+            await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
+    
     # Restart command
     @bot.command(name='restart')
     async def restart(ctx):
@@ -1040,6 +1013,13 @@ if __name__ == "__main__":
         await ctx.send(f"Restarting the bot...\nNote: Restart may not work if the bot is running on a Free Tier Repl on Replit.")
         await bot.close()
         os._exit(0)
+
+    
+    # Bot ping-pong command
+    @bot.command(name='ping')
+    async def ping(ctx):
+        await ctx.send('pong')
+        print(f'\n{ctx.author.name} just got ponged!\t{datetime.datetime.now().strftime("%m/%d %H:%M:%S")}\n')
 
     print(f"Booting up Discord Bot...\n{'-'*150}")
     bot.run(DISCORD_TOKEN)
