@@ -63,46 +63,76 @@ Upon invoking the `!button` command, these are currently supported with a scene 
 - Top Geographic Based Revenue
 
 ## Set-Up
+For this project, you need to enable use of Google Cloud Console YouTube Analytics/Data API for your account & create a discord bot to obtain a discord token.
+### Google Cloud Console API Setup
 
-#### Google Cloud Console (API Setup)
+Follow these well-organized steps to set up the Google Cloud Console API:
 
-To set up the Google Cloud Console API, follow these steps:
+1. **Create a New Project**
+   - Visit the [Google Cloud Console](https://console.cloud.google.com/apis) website and create a new project.
 
-1. Go to the [Google Cloud Console](https://console.cloud.google.com/apis) website and create a new project.
-2. Click on **API & Services** and select **Enable APIs and Services**.
-3. Search for and enable both the **YouTube Data API** and **YouTube Analytics API**.
-4. Return to the **API & Services** page and click on **Credentials**.
-5. Select **User Type (External)**, then configure the **OAuth Consent Screen** by adding the following YouTube Analytics related scopes:
-   - `https://www.googleapis.com/auth/youtube.readonly`
-   - `https://www.googleapis.com/auth/yt-analytics-monetary.readonly`
-6. Go through the rest of the configuration settings for OAuth.
-7. Click **Create Credentials**, then select **OAuth Credentials**, followed by **Desktop Application**. Proceed with the setup.
-8. Download the JSON file, name it `CLIENT_SECRET.json`, and place the file inside the same folder as your program. You will be able to optionally assign the contents to the env variable `CLIENT_SECRET` after running the program and generating a refresh token.
-9. Create Credentials -> API Key -> Copy and assign the key to the `YOUTUBE_API_KEY` environment variable.
+2. **Enable APIs and Services**
+   - Click on **API & Services** and select **Enable APIs and Services**.
 
-Now your Google Cloud Console API is set up and ready to use!
+3. **Enable YouTube APIs**
+   - Search for and enable both the **YouTube Data API** and **YouTube Analytics API**.
 
-#### Discord Bot
+4. **Configure OAuth Consent Screen**
+   - Return to the **API & Services** page and click on **Credentials**.
+   - Select **User Type (External)**, then configure the **OAuth Consent Screen** by adding the following YouTube Analytics related scopes:
+     - `https://www.googleapis.com/auth/youtube.readonly`
+     - `https://www.googleapis.com/auth/yt-analytics-monetary.readonly`
 
-To set up the Discord bot, follow these steps:
+5. **Complete OAuth Configuration**
+   - Proceed with the rest of the configuration settings for OAuth.
 
-1. Go to [Discord Developers](https://discord.com/developers/) and create a new application. Name it "YouTube Apprise" or any desired name, then accept the terms.
-2. Open the created application and navigate to the **OAuth2** URL Generator section.
-3. Under **Scopes**, select **Bot** and enable the desired bot permissions.
-   - Make sure to enable text permissions like **Send Messages** and **Read Message History**.
-   - Additionally, enable general permissions such as **View Server Insights**.
-4. Copy the generated link located below the **Permissions** section and paste it into a browser. Use this link to add the bot to your chosen server. It is recommended to add the bot to your own private Discord server to protect sensitive information like revenue and CPM, accessible through bot commands.
-5. *(Optional)* Customize the bot's profile picture by adding a visually appealing image in the **Rich Presence** section.
-6. In the **Bot** section of the application, obtain, reset, or retrieve the token. Assign this token to the `DISCORD_TOKEN` environment variable.
+6. **Create OAuth Credentials**
+   - Click **Create Credentials**, then select **OAuth Credentials**, followed by **Desktop Application**. Continue with the setup.
 
-Now your Discord bot is ready to use!
+7. **Download OAuth JSON File**
+   - Download the JSON file and name it `CLIENT_SECRET.json`.
+   - Place this file in the same folder as your program. You'll have the option to assign its contents to the `CLIENT_SECRET` environment variable after running the program and generating a refresh token.
+
+8. **Create API Key**
+   - Create Credentials -> API Key.
+   - Copy and assign the API key to the `YOUTUBE_API_KEY` environment variable.
+
+Now, your Google Cloud Console API is fully set up and ready to use!
+
+
+### Discord Bot
+
+Follow these organized steps to set up your Discord bot:
+
+1. **Create a Discord Application**
+   - Visit [Discord Developers](https://discord.com/developers/) and create a new application. Name it "YouTube Apprise" or choose a suitable name. Accept the terms.
+
+2. **Configure OAuth2**
+   - Access your newly created application and go to the **OAuth2** URL Generator section.
+
+3. **Select Scopes and Permissions**
+   - Under **Scopes**, choose **Bot** and enable the required bot permissions.
+     - Ensure text permissions like **Send Messages** and **Read Message History** are enabled.
+     - Additionally, enable general permissions like **View Server Insights**.
+
+4. **Generate Bot Invite Link**
+   - Copy the generated link located beneath the **Permissions** section. Paste this link into your browser. Use it to add the bot to your preferred server. It's recommended to add the bot to your private Discord server to safeguard sensitive information, like revenue and CPM, accessible through bot commands.
+
+5. *(Optional)* **Customize Profile Picture**
+   - Enhance your bot's appearance by uploading an appealing image in the **Rich Presence** section.
+
+6. **Retrieve Bot Token**
+   - In the **Bot** section of your application, obtain, reset, or retrieve the bot token. Assign this token to the `DISCORD_TOKEN` environment variable.
+
+Now, your Discord bot is ready for action!
+
 
 ## Installation
 
 The bot can be run using Python or Docker.
 #### Python Script
 1. Clone this repository, cd into it, and install dependancies:
-```sh
+   ```sh
    git clone https://github.com/Prem-ium/youtube-analytics-bot
    cd youtube-analytics-bot
    pip install -r requirements.txt
@@ -110,26 +140,41 @@ The bot can be run using Python or Docker.
 2. Configure your `.env` file (See below and example for options)
 3. Run the script:
 
-    ```sh
+   ```sh
     python main.py
    ```
-#### Docker Container
-Build with Docker only after running locally and generating a `credentials.json` file (unless you've enabled developer mode)
-1. Run script locally with Python to generate credentials json file.
-2. Download and install Docker on your system
-3. Configure your `.env` file (See below and example for options)
-4. To build the image yourself, cd into the repository and run:
-   ```sh
-   docker build -t youtube-apprise .
-   ```
-   Then start the bot with:
-   ```sh
-   docker run -it --env-file ./.env --restart unless-stopped --name youtube-apprise youtube-apprise
-   ```
-   Both methods will create a new container called `youtube-apprise`. Make sure you have the correct path to your `.env` file you created.
 
-5. Let the bot log in and begin working. DO NOT PRESS `CTRL-c`. This will kill the container and the bot. To exit the logs view, press `CTRL-p` then `CTRL-q`. This will exit the logs view but let the bot keep running.
+### Docker Container Setup
 
+Before building the Docker container, follow these steps carefully to ensure a smooth setup. Ensure you have generated the `credentials.json` file locally (unless developer mode is enabled):
+
+1. **Generate Credentials JSON File**
+   - Run the Python script locally to generate the `credentials.json` file.
+
+2. **Install Docker**
+   - Download and install Docker on your system.
+
+3. **Configure `.env` File**
+   - Configure your `.env` file with the necessary settings (see below for options).
+
+4. **Build the Docker Image**
+   - To build the image yourself, navigate to the repository directory and execute the following command:
+     ```sh
+     docker build -t youtube-apprise .
+     ```
+
+5. **Start the Bot**
+   - Start the bot within a Docker container with the following command:
+     ```sh
+     docker run -it --env-file ./.env --restart unless-stopped --name youtube-apprise youtube-apprise
+     ```
+   - Ensure that the path to your `.env` file is correctly specified.
+
+6. **Running the Bot**
+   - Once started, the bot will log in and begin its tasks.
+   - IMPORTANT: Do NOT press `CTRL-c` as it will terminate the container and the bot. To exit the logs view, use `CTRL-p` followed by `CTRL-q`. This will exit the logs view without stopping the bot.
+
+By following these steps, you'll have a Docker container named `youtube-apprise` running your bot.
 
 ## Environment Variables:
 As always, please refer to the `.env.example' file for examples. 
@@ -150,23 +195,20 @@ As always, please refer to the `.env.example' file for examples.
 | `KEEP_ALIVE`         | Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit. |
 
 
-## Donations
-I've been working on this project for a few months now, and I'm really happy with how it's turned out. It has been a great tool to explore content creator's analytics with ease. I'm working on creating new features and optimizing the project to run queries as efficiently as possible.
+# Donations
 
-If you would like to show your appreciation for my work, I have set up two methods of sending in a donation: 
+If you appreciate my work and would like to show your support, there are two convenient ways to make a donation:
 
-<a href="https://github.com/sponsors/Prem-ium">Github Sponsors</a>, the ideal donation method, to make donations with no fees!
-<a href="https://github.com/sponsors/Prem-ium" target="_blank">
-        <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA" alt="GitHub Sponsor" img width="25%">
-</a>
-Otherwise, <a href="https://www.buymeacoffee.com/prem.ium">Buy-Me-Coffee</a> can be used to place donations as well. 
-<a href="https://www.buymeacoffee.com/prem.ium" target="_blank">
-        <img src="https://raw.githubusercontent.com/Prem-ium/youtube-analytics-bot/main/output-examples/media/coffee-logo.png" alt="Buy Me A Coffee" img width="25%">
-</a>
+1. **GitHub Sponsors**
+   - [Donate via GitHub Sponsors](https://github.com/sponsors/Prem-ium)
+   - This is the preferred donation method as it incurs no transaction fees & different tiers offer perks.
+   [![GitHub Sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AAA)](https://github.com/sponsors/Prem-ium)
 
-Your generous donations will greatly assist me in covering the expenses associated with developing new features and promoting the project to a broader audience. I extend my heartfelt gratitude to all those who have already contributed. 
+2. **Buy Me A Coffee**
+   - [Donate via Buy Me A Coffee](https://www.buymeacoffee.com/prem.ium)
+   - [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/prem.ium)
 
-Thank you for your unwavering support!
+Your generous donations will go a long way in helping me cover the expenses associated with developing new features and promoting the project to a wider audience. I extend my heartfelt gratitude to all those who have already contributed. Thank you for your support!
 
 
 ## License
