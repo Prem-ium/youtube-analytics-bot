@@ -45,7 +45,7 @@ from discord.ext                    import commands
 from oauth2client                   import client, tools
 from google.oauth2.credentials      import Credentials
 
-# Import .env variables
+# Load the .env file & assign the variables
 load_dotenv()
 
 if not os.environ["DISCORD_TOKEN"]:
@@ -68,11 +68,16 @@ if (os.environ.get("KEEP_ALIVE", "False").lower() == "true"):
 DEV_MODE = (os.environ.get("DEV_MODE", "False").lower() == "true")
 
 if DEV_MODE:
-    print(f'{"- "*25}\nAttention: Developer mode enabled.\nThe program will be relying on CLIENT_SECRET JSON Dict to be assigned to the proper .env variable & will not search/use for a CLIENT_SECRET.json file.\n{"- "*25}')
-   
-    try:        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
-    except:     raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
-    
+    print("- " * 25)
+    print("Attention: Developer mode enabled.")
+    print("The program will rely on the CLIENT_SECRET JSON Dict assigned to the proper .env variable.")
+    print("It will not search for or use a CLIENT_SECRET.json file.")
+    print("- " * 25)
+
+    try:
+        CLIENT_SECRETS = json.loads(os.environ.get("CLIENT_SECRET", None))['installed']
+    except: raise Exception("CLIENT_SECRET is missing within .env file, please add it and try again.")
+
 else:
     CLIENT_SECRETS = os.environ.get("CLIENT_PATH", "CLIENT_SECRET.json")
 
@@ -88,7 +93,7 @@ def get_service (API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=S
         try:
             credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
             return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-        except: print(f'Failed to build service: {e}\n{traceback.format_exc()}')
+        except: print(f'Failed to build service:\n{traceback.format_exc()}')
 
     try:
         credential_path = os.path.join('./', 'credentials.json')
@@ -98,7 +103,7 @@ def get_service (API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=S
             flow = client.flow_from_clientsecrets(CLIENT_SECRETS, SCOPES)
             credentials = tools.run_flow(flow, store)
         return build(API_SERVICE_NAME, API_VERSION, credentials=credentials)
-    except: print(f'Failed to run client flow service: {e}\n{traceback.format_exc()}')
+    except: print(f'Failed to run client flow service: \n{traceback.format_exc()}')
     
     try:
         credentials = Credentials.from_authorized_user_info(CLIENT_SECRETS)
@@ -108,7 +113,7 @@ def get_service (API_SERVICE_NAME='youtubeAnalytics', API_VERSION='v2', SCOPES=S
             service = json.load(f)
         return build_from_document(service, credentials = credentials)
     except Exception as e:
-        print(f'Failed: Exhaused all get_service methods: {e}\n{traceback.format_exc()}')
+        print(f'Failed: Exhaused all get_service methods: \n{traceback.format_exc()}')
         raise
 
 # Swap between dev mode and normal mode
@@ -210,7 +215,6 @@ async def refresh(return_embed=False, token=None):
 
 # Change dates to API format
 async def update_dates (startDate, endDate):
-    #print(f'Received start date: {startDate} and end date: {endDate}')
     splitStartDate, splitEndDate = startDate.split('/'), endDate.split('/')
 
     # If the start and end dates are in the first month of the year & they are the same date
@@ -237,8 +241,6 @@ async def update_dates (startDate, endDate):
             startDate = datetime.datetime.strptime(startDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
         if len(endDate) == 5:
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
-
-    #print(f'Updated dates to {startDate} - {endDate}')
     return startDate, endDate
 
 
