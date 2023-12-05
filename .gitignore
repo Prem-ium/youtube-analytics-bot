@@ -1,8 +1,8 @@
 .env
-credentials.json
-CLIENT_SECRET.json
+*cred*.json
+*SECRET*.json
 test*
-boiler*
+*pycache*
 .vscode
 .replit
 replit*
