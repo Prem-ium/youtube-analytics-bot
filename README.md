@@ -1,4 +1,4 @@
-<p align="right"><a href="https://www.youtube.com/channel/UCTBKWIcBRPGh2yhPkrIbJPw"><img src="https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white" alt="YouTube"/></a></p>
+<p align="right"><img src="https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white" alt="YouTube"/></p>
 <h1 align="center">📊 YouTube Analytics Discord Bot 🤖 </h1>
 
 <p align="center">An <i>awesome</i> Discord Bot to fetch & display your YouTube Analytics data.</p>
