@@ -31,20 +31,16 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-import os, datetime, traceback, calendar, requests, json, asyncio
-
-from calendar                       import monthrange
-from dotenv                         import load_dotenv
-
+import os, datetime, traceback, requests, json
 import discord
-import google, google_auth_oauthlib, googleapiclient.errors
 
 from oauth2client.client            import HttpAccessTokenRefreshError
 from googleapiclient.discovery      import build, build_from_document
 from oauth2client.file              import Storage
-from discord.ext                    import commands
 from oauth2client                   import client, tools
 from google.oauth2.credentials      import Credentials
+
+from dotenv                         import load_dotenv
 
 # Load the .env file & assign the variables
 load_dotenv()
