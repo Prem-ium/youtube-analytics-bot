@@ -86,90 +86,89 @@ async def update_dates (startDate, endDate):
             endDate = datetime.datetime.strptime(endDate, '%m/%d').strftime(f'{currentYear}/%m/%d').replace('/', '-')
     return startDate, endDate
 
+class SimpleView(discord.ui.View):     
+    startDate: datetime = datetime.datetime.now().strftime("%Y-%m-01")
+    endDate: datetime = datetime.datetime.now().strftime("%Y-%m-%d")
+
+    def __init__(self, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), timeout=None):
+        super().__init__(timeout=timeout)
+        async def initialize_dates():
+            self.startDate, self.endDate = await update_dates(startDate, endDate)
+        
+        asyncio.ensure_future(initialize_dates())
+    
+    ##TODO: Add a way to resend buttons without making bot edit the message & destroy old stats
+    async def update_buttons(self, interaction: discord.Interaction, embed: discord.Embed, response_str: str):
+        await interaction.response.edit_message(content=response_str, embed=embed, view=self)
+
+    @discord.ui.button(label='Analytics', style=discord.ButtonStyle.blurple)
+    async def channel_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_stats(start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+
+    @discord.ui.button(label="Top Revenue Videos", style=discord.ButtonStyle.blurple)
+    async def top_earners(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await top_revenue(results=10, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+
+    @discord.ui.button(label="Search Keyword Terms", style=discord.ButtonStyle.blurple)
+    async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+
+    @discord.ui.button(label='Playlist Stats', style=discord.ButtonStyle.blurple)
+    async def playlist_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_playlist_stats(results=5, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+    
+    @discord.ui.button(label='Geographic', style=discord.ButtonStyle.blurple)
+    async def geo_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_detailed_georeport(results=5, startDate=self.startDate, endDate=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+        embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
+        await interaction.response.edit_message(content=response_str, embed=embed, view=self)
+
+    @discord.ui.button(label='OS Stats', style=discord.ButtonStyle.blurple)
+    async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+    
+    @discord.ui.button(label='Traffic Source', style=discord.ButtonStyle.blurple)
+    async def traffic_source(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_traffic_source(results=5, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+    
+    @discord.ui.button(label='Shares', style=discord.ButtonStyle.blurple)
+    async def shares(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await get_shares(results=5, start=self.startDate, end=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+    
+    @discord.ui.button(label='Top Earning Countries', style=discord.ButtonStyle.blurple)
+    async def highest_earning_countries(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed, response_str = await top_countries_by_revenue(results=5, startDate=self.startDate, endDate=self.endDate)
+        await self.update_buttons(interaction, embed, response_str)
+
+    @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
+    async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
+        status = await refresh(return_embed=False)
+        print(status)
+        await interaction.response.send_message(status)
+    
+    @discord.ui.button(label="Refresh Dates", style=discord.ButtonStyle.blurple)
+    async def refresh_dates(self, interaction: discord.Interaction, button: discord.ui.Button):
+        self.startDate, self.endDate = await update_dates(startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"))
+        await interaction.response.send_message(f"Dates have been refreshed to {self.startDate} - {self.endDate}")
+
+    @discord.ui.button(label='Ping!', style=discord.ButtonStyle.grey)
+    async def got_ping(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message('Pong!')
+
 if __name__ == "__main__":
     # Refresh Token & Retrieve Channel ID at Launch 
     try: refresh_token()
     except FileNotFoundError as e: print(f'{e.__class__.__name__, e}{get_service()}')
 
-    try:    CHANNEL_ID = YOUTUBE_DATA.channels().list(part="id",mine=True).execute()['items'][0]['id']
-    except: print(traceback.format_exc())
-
-    
-    # View class for Discord bot, handles all button interactions
-    class SimpleView(discord.ui.View):     
-        startDate: datetime = datetime.datetime.now().strftime("%Y-%m-01")
-        endDate: datetime = datetime.datetime.now().strftime("%Y-%m-%d")
-
-        def __init__(self, startDate=datetime.datetime.now().strftime("%m/01/%y"), endDate=datetime.datetime.now().strftime("%m/%d/%y"), timeout=None):
-            super().__init__(timeout=timeout)
-            async def initialize_dates():
-                self.startDate, self.endDate = await update_dates(startDate, endDate)
-            
-            asyncio.ensure_future(initialize_dates())
-        
-        ##TODO: Add a way to resend buttons without making bot edit the message & destroy old stats
-        async def update_buttons(self, interaction: discord.Interaction, embed: discord.Embed, response_str: str):
-            await interaction.response.edit_message(content=response_str, embed=embed, view=self)
-
-        @discord.ui.button(label='Analytics', style=discord.ButtonStyle.blurple)
-        async def channel_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_stats(start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-
-        @discord.ui.button(label="Top Revenue Videos", style=discord.ButtonStyle.blurple)
-        async def top_earners(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await top_revenue(results=10, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-
-        @discord.ui.button(label="Search Keyword Terms", style=discord.ButtonStyle.blurple)
-        async def search_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_traffic_source(results=10, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-
-        @discord.ui.button(label='Playlist Stats', style=discord.ButtonStyle.blurple)
-        async def playlist_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_playlist_stats(results=5, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-        
-        @discord.ui.button(label='Geographic', style=discord.ButtonStyle.blurple)
-        async def geo_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_detailed_georeport(results=5, startDate=self.startDate, endDate=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-
-            embed, response_str = await top_countries_by_revenue(results=5, start=self.startDate, end=self.endDate)
-            await interaction.response.edit_message(content=response_str, embed=embed, view=self)
-
-        @discord.ui.button(label='OS Stats', style=discord.ButtonStyle.blurple)
-        async def os_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_operating_stats(results=5, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-        
-        @discord.ui.button(label='Traffic Source', style=discord.ButtonStyle.blurple)
-        async def traffic_source(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_traffic_source(results=5, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-        
-        @discord.ui.button(label='Shares', style=discord.ButtonStyle.blurple)
-        async def shares(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await get_shares(results=5, start=self.startDate, end=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-        
-        @discord.ui.button(label='Top Earning Countries', style=discord.ButtonStyle.blurple)
-        async def highest_earning_countries(self, interaction: discord.Interaction, button: discord.ui.Button):
-            embed, response_str = await top_countries_by_revenue(results=5, startDate=self.startDate, endDate=self.endDate)
-            await self.update_buttons(interaction, embed, response_str)
-
-        @discord.ui.button(label='Refresh Token', style=discord.ButtonStyle.success)
-        async def token_ref(self, interaction: discord.Interaction, button: discord.ui.Button):
-            status = await refresh(return_embed=False)
-            print(status)
-            await interaction.response.send_message(status)
-
-        @discord.ui.button(label='Ping!', style=discord.ButtonStyle.grey)
-        async def got_ping(self, interaction: discord.Interaction, button: discord.ui.Button):
-            await interaction.response.send_message('Pong!')
-
-
+    CHANNEL_ID = YOUTUBE_DATA.channels().list(part="id",mine=True).execute()['items'][0]['id']
     discord_intents = discord.Intents.all()
     bot = commands.Bot(command_prefix='!', intents=discord_intents)
     bot.remove_command('help')
@@ -177,40 +176,38 @@ if __name__ == "__main__":
     if DISCORD_CHANNEL:
         @bot.event
         async def on_ready():
-            channel = bot.get_channel(DISCORD_CHANNEL)
-
-            await channel.send(embed=discord.Embed(
+            await bot.get_channel(DISCORD_CHANNEL).send(embed=discord.Embed(
                 title="YouTube Analytics Bot Online",
                 description="The bot is ready to provide YouTube analytics at your command!",
                 color=discord.Color.green()
             ))
-            await channel.send(view=SimpleView())
+            await bot.get_channel(DISCORD_CHANNEL).send(view=SimpleView())
 
     # Help command
     @bot.command()
     async def help(ctx):
         available_commands = [
-            {"command": "!button",      "parameters": "[startDate] [endDate]",                  "description": "Opens a view shortcut for all available commands",              "example": "!button -- !button 01/01 12/01\n"},
-            {"command": "!stats",       "parameters": "[startDate] [endDate]",                  "description": "Return stats within a time range (defaults to current month)",  "example": "!stats 01/01 12/01 -- !stats 01/01/2021 01/31/2021\n"},
-            {"command": "!getMonth",    "parameters": "[month/year]",                           "description": "Return stats for a specific month",                             "example": "!getMonth 01/21 -- !getMonth 10/2020\n"},
-            {"command": "!lifetime",    "parameters": "None",                                   "description": "Get lifetime stats",                                            "example": "!lifetime\n"},
-            {"command": "!topEarnings", "parameters": "[startDate] [endDate] [# of countries]", "description": "Return top revenue-earning videos",                             "example": "!topEarnings 01/01 12/1 5\n"},
-            {"command": "!geo_revenue", "parameters": "[startDate] [endDate] [# of countries]", "description": "Top countries by revenue",                                      "example": "!geo_revenue 01/01 12/1 5\n"},
-            {"command": "!geoReport",   "parameters": "[startDate] [endDate] [# of countries]", "description": "More detailed revenue report by country",                       "example": "!geoReport 01/01 12/1 5\n"},
-            {"command": "!adtype",      "parameters": "[startDate] [endDate]",                  "description": "Get highest performing ad types",                               "example": "!adtype 01/01 12/1\n"},
-            {"command": "!demographics","parameters": "[startDate] [endDate]",                  "description": "Get viewer demographics data (age and gender)",                 "example": "!demographics 01/01 12/1\n"},
-            {"command": "!shares",      "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top videos by shares",                                   "example": "!shares 01/01 12/1 5\n"},
-            {"command": "!search",      "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top search terms by views",                              "example": "!search 01/01 12/1 5\n"},
-            {"command": "!os",          "parameters": "[startDate] [endDate] [# of results]",   "description": "Return top operating systems by views",                         "example": "!os 01/01 12/1 5\n"},
-            {"command": "!playlist",    "parameters": "[startDate] [endDate] [# of results]",   "description": "Return playlist stats",                                         "example": "!playlist 01/01 12/1\n"},
-            {"command": "!everything",  "parameters": "[startDate] [endDate]",                  "description": "Return all available data",                                     "example": "!everything 01/01 12/1\n\n"},
-            {"command": "!refresh",     "parameters": "None",                                   "description": "Refresh the API token",                                         "example": "!refresh"},
-            {"command": "!switch",      "parameters": "None",                                   "description": "Toggle between dev and user mode (temporary)",                  "example": "!switch"},
-            {"command": "!restart",     "parameters": "None",                                   "description": "Restart the bot",                                               "example": "!restart"},
-            {"command": "!help",        "parameters": "None",                                   "description": "Show this help message",                                        "example": "!help"},
-            {"command": "!ping",        "parameters": "None",                                   "description": "Check bot latency",                                             "example": "!ping"},
+            {"command": "`!button`",      "parameters": "`[startDate] [endDate]`",                  "description": "Opens a view shortcut for all available commands",              "example": "!button -- !button 01/01 12/01\n"},
+            {"command": "`!stats`",       "parameters": "`[startDate] [endDate]`",                  "description": "Return stats within a time range (defaults to current month)",  "example": "!stats 01/01 12/01 -- !stats 01/01/2021 01/31/2021\n"},
+            {"command": "`!getMonth`",    "parameters": "`[month/year]`",                           "description": "Return stats for a specific month",                             "example": "!getMonth 01/21 -- !getMonth 10/2020\n"},
+            {"command": "`!lifetime`",    "parameters": "N/A",                                      "description": "Get lifetime stats",                                            "example": "!lifetime\n"},
+            {"command": "`!topEarnings`", "parameters": "`[startDate] [endDate] [# of countries]`", "description": "Return top revenue-earning videos",                             "example": "!topEarnings 01/01 12/1 5\n"},
+            {"command": "`!geo_revenue`", "parameters": "`[startDate] [endDate] [# of countries]`", "description": "Top countries by revenue",                                      "example": "!geo_revenue 01/01 12/1 5\n"},
+            {"command": "`!geoReport`",   "parameters": "`[startDate] [endDate] [# of countries]`", "description": "More detailed revenue report by country",                       "example": "!geoReport 01/01 12/1 5\n"},
+            {"command": "`!adtype`",      "parameters": "`[startDate] [endDate]`",                  "description": "Get highest performing ad types",                               "example": "!adtype 01/01 12/1\n"},
+            {"command": "`!demographics`","parameters": "`[startDate] [endDate]`",                  "description": "Get viewer demographics data (age and gender)",                 "example": "!demographics 01/01 12/1\n"},
+            {"command": "`!shares`",      "parameters": "`[startDate] [endDate] [# of results]`",   "description": "Return top videos by shares",                                   "example": "!shares 01/01 12/1 5\n"},
+            {"command": "`!search`",      "parameters": "`[startDate] [endDate] [# of results]`",   "description": "Return top search terms by views",                              "example": "!search 01/01 12/1 5\n"},
+            {"command": "`!os`",          "parameters": "`[startDate] [endDate] [# of results]`",   "description": "Return top operating systems by views",                         "example": "!os 01/01 12/1 5\n"},
+            {"command": "`!playlist`",    "parameters": "`[startDate] [endDate] [# of results]`",   "description": "Return playlist stats",                                         "example": "!playlist 01/01 12/1\n"},
+            {"command": "`!everything`",  "parameters": "`[startDate] [endDate]`",                  "description": "Return all available data",                                     "example": "!everything 01/01 12/1\n\n"},
+            {"command": "`!refresh`",     "parameters": "N/A",                                      "description": "Refresh the API token",                                         "example": "!refresh"},
+            {"command": "`!switch`",      "parameters": "N/A",                                      "description": "Toggle between dev and user mode (temporary)",                  "example": "!switch"},
+            {"command": "`!restart`",     "parameters": "N/A",                                      "description": "Restart the bot",                                               "example": "!restart"},
+            {"command": "`!help`",        "parameters": "N/A",                                      "description": "Show this help message",                                        "example": "!help"},
+            {"command": "`!ping`",        "parameters": "N/A",                                      "description": "Check bot latency",                                             "example": "!ping"},
         ]
-        current_field = "Parameters are optional, most commands have default dates, denoted by [].\n\n"
+        current_field = "Parameters are optional, most commands have default dates, denoted by `[]`.\n\n"
 
         for cmd_info in available_commands:
             field_content = f"**Command:** {cmd_info['command']}\n"
@@ -225,13 +222,11 @@ if __name__ == "__main__":
         embed.set_footer(text="Bot developed by Prem-ium.\nhttps://github.com/Prem-ium/youtube-analytics-bot\n")
         await ctx.send(embed=embed)
 
-
     # Button command, opens a View with supported commands
     @bot.command()
     async def button(ctx, startDate, endDate):
         view = SimpleView(startDate, endDate, timeout=None)
         await ctx.send(view=view)
-
 
     # Retrieve Analytic stats within specified date range, defaults to current month
     @bot.command(aliases=['stats', 'thisMonth', 'this_month'])
@@ -244,8 +239,7 @@ if __name__ == "__main__":
             try:    await ctx.send(embed=stats[0])
             except: pass
             finally: await ctx.send(stats[1])
-            
-            # Print a message to the console indicating that the stats were sent
+
             print(f'\n{startDate} - {endDate} stats sent')
         except Exception as e:  await ctx.send(f'Error:\n {e}\n{traceback.format_exc()}')
 
