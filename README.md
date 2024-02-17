@@ -1,14 +1,13 @@
 <p align="right"><img src="https://img.shields.io/badge/YouTube-%23FF0000.svg?style=for-the-badge&logo=YouTube&logoColor=white" alt="YouTube"/></p>
 <h1 align="center">📊 YouTube Analytics Discord Bot 🤖 </h1>
 
-<p align="center">An <i>awesome</i> Discord Bot to fetch & display your YouTube Analytics data.</p>
+<p align="center">An <i>awesome</i> Discord Bot to fetch your YouTube Channel Analytics.</p>
 
 <p align="center"><img src="https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54"/><img src="https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white"/><img src="https://img.shields.io/badge/flask-%23000.svg?style=for-the-badge&logo=flask&logoColor=white"/>
    <a href="https://github.com/sponsors/Prem-ium" target="_blank">
         <img src="https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#EA4AA" alt="Github Sponsor"/></a>
    <a href="https://www.buymeacoffee.com/prem.ium" target="_blank"> <img src="https://img.shields.io/badge/Buy%20Me%20a%20Coffee-ffdd00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee"/></a>
    </p>
-   
    
 ## Features:
 - Collects data on a variety of metrics, including views, revenue, subscriber growth, & more
@@ -126,7 +125,6 @@ Follow these organized steps to set up your Discord bot:
 
 Now, your Discord bot is ready for action!
 
-
 ## Installation
 
 The bot can be run using Python or Docker.
@@ -210,10 +208,10 @@ If you appreciate my work and would like to show your support, there are two con
 
 Your generous donations will go a long way in helping me cover the expenses associated with developing new features and promoting the project to a wider audience. I extend my heartfelt gratitude to all those who have already contributed. Thank you for your support!
 
-
 ## License
 This repository uses the [BSD 3-Clause “New” or “Revised” License.](https://choosealicense.com/licenses/bsd-3-clause/#)
 
 ## Final Remarks
 Please leave a :star2: if you found this project to be cool!
+Made possible thanks to Google's YouTube Analytics/Data APIs
 May your analytics skyrocket up📈
