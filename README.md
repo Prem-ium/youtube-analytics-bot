@@ -192,9 +192,11 @@ As always, please refer to the `.env.example' file for examples.
 | `DISCORD_CHANNEL`    | Turn on developer mode in advanced settings, right click on text channel, copy ID |
 | `KEEP_ALIVE`         | Boolean True/False value. Whether to us a Flask server or not to keep program from dying on platforms like Replit. |
 
+## Experiencing Issues? 🛠️
+As of 9/8/2024, I have disabled the `Issues` privilege for the general public. For direct support on any bugs or issues, please consider sponsoring me as a GitHub Sponsor under the `Silver` or `Gold` tier. 
+[![Sponsor](https://img.shields.io/badge/sponsor-30363D?style=for-the-badge&logo=GitHub-Sponsors&logoColor=#white)](https://github.com/sponsors/Prem-ium)
 
 # Donations
-
 If you appreciate my work and would like to show your support, there are two convenient ways to make a donation:
 
 1. **GitHub Sponsors**
